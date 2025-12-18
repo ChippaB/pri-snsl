@@ -833,7 +833,7 @@
             </div>
             <button class="btn btn-primary" onclick="applyFilters()">🔍 Apply</button>
             <button class="btn btn-secondary" onclick="clearFilters()">✕ Clear</button>
-            <button class="btn btn-success" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn btn-success" onclick="exportXLSX()">📥 Export XLSX</button>
             <button class="btn btn-add" onclick="openAddModal()">➕ Add Record</button>
         </div>
 
@@ -1681,6 +1681,62 @@
             } catch (e) {
                 console.error('Delete error:', e);
                 alert('Failed to delete record: ' + e.message);
+            }
+        }
+
+        // Export to XLSX using SheetJS
+        async function exportXLSX() {
+            if (filteredScans.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            // Load SheetJS dynamically if not loaded
+            if (typeof XLSX === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => doExport();
+                document.head.appendChild(script);
+            } else {
+                doExport();
+            }
+
+            function doExport() {
+                // Prepare data
+                const data = filteredScans.map(scan => ({
+                    'Date/Time': formatDateTime(scan.created_at),
+                    'Serial Number': scan.serial_number || '',
+                    'Part Number': scan.part_id || '',
+                    'Operator': scan.operator_name || '',
+                    'Station': scan.station_id || '',
+                    'Comment': scan.batch_comment || '',
+                    'Notes': scan.dashboard_notes || ''
+                }));
+
+                // Create worksheet
+                const ws = XLSX.utils.json_to_sheet(data);
+
+                // Set column widths
+                ws['!cols'] = [
+                    { wch: 20 }, // Date/Time
+                    { wch: 18 }, // Serial Number
+                    { wch: 14 }, // Part Number
+                    { wch: 12 }, // Operator
+                    { wch: 10 }, // Station
+                    { wch: 30 }, // Comment
+                    { wch: 30 }  // Notes
+                ];
+
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Scans');
+
+                // Generate filename with date
+                const dateStr = new Date().toISOString().split('T')[0];
+                const filename = `PRI_Scans_${dateStr}.xlsx`;
+
+                // Download
+                XLSX.writeFile(wb, filename);
             }
         }
 
