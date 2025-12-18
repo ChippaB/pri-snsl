@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scan Log Dashboard | Polytechnic Resources</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #072549;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--navy);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+        }
+
+        .header-stats span {
+            opacity: 0.8;
+        }
+
+        .header-stats strong {
+            opacity: 1;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 140px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            min-width: 150px;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .filter-group input[type="date"] {
+            min-width: 140px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-add {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #7c3aed;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Action buttons in table */
+        .action-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 4px;
+            transition: all 0.2s;
+        }
+
+        .action-btn.edit {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-btn.edit:hover {
+            background: #1e40af;
+            color: white;
+        }
+
+        .action-btn.delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .action-btn.delete:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Password Overlay */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(7, 37, 73, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .password-overlay.hidden {
+            display: none;
+        }
+
+        .password-modal {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .password-modal h2 {
+            margin-bottom: 16px;
+            color: var(--navy);
+        }
+
+        .password-modal p {
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+
+        .password-modal input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .password-modal input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: var(--navy);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        /* Quick Date Filters */
+        .quick-filters {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .quick-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .quick-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .quick-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .quick-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            background: #f1f5f9;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            resize: horizontal;
+            overflow: auto;
+            min-width: 60px;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .serial-num {
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            font-weight: 600;
+            color: #059669;
+            background: #ecfdf5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .part-num {
+            color: var(--accent);
+            font-weight: 600;
+            background: #eff6ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .operator-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #dbeafe;
+            color: #1e40af;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .station-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #f3e8ff;
+            color: #7c3aed;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .timestamp {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .comment {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* Sortable Headers */
+        th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        th.sortable:hover {
+            background: #e2e8f0;
+        }
+
+        th.sortable .sort-icon {
+            opacity: 0.4;
+            margin-left: 4px;
+        }
+
+        th.sortable.asc .sort-icon,
+        th.sortable.desc .sort-icon {
+            opacity: 1;
+        }
+
+        th.sortable.asc .sort-icon::after {
+            content: ' ↑';
+        }
+
+        th.sortable.desc .sort-icon::after {
+            content: ' ↓';
+        }
+
+        /* Multi-Select Dropdown - Excel Style */
+        .multi-select {
+            position: relative;
+            min-width: 140px;
+        }
+
+        .multi-select-btn {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .multi-select-btn:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .multi-select-dropdown {
+            position: fixed;
+            background: white;
+            border: 1px solid #999;
+            border-radius: 3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            z-index: 1000;
+            width: 220px;
+            max-height: 300px;
+            display: none;
+            flex-direction: column;
+        }
+
+        .multi-select-dropdown.show {
+            display: flex;
+        }
+
+        .multi-select-header {
+            padding: 6px 8px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 4px;
+            background: #f5f5f5;
+        }
+
+        .multi-select-header input[type="text"] {
+            flex: 1;
+            min-width: 80px;
+            padding: 4px 6px;
+            border: 1px solid #999;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .multi-select-header button {
+            padding: 4px 8px;
+            border: 1px solid #999;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .multi-select-header button:hover {
+            background: #e5e5e5;
+        }
+
+        .multi-select-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .multi-select-list label {
+            display: flex;
+            align-items: center;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+
+        .multi-select-list label:hover {
+            background: #e5f3ff;
+        }
+
+        .multi-select-list input[type="checkbox"] {
+            width: 12px;
+            height: 12px;
+            margin: 0 4px 0 0;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .multi-select-footer {
+            padding: 6px 8px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #666;
+            background: #f5f5f5;
+        }
+
+        .multi-select-footer button {
+            padding: 4px 12px;
+            border: 1px solid #999;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .multi-select-footer button:hover {
+            background: #e5e5e5;
+        }
+
+        /* Dashboard Notes - Editable */
+        .notes-cell {
+            min-width: 150px;
+            max-width: 250px;
+        }
+
+        .notes-cell .note-display {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            min-height: 24px;
+            color: var(--text);
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .notes-cell .note-display:hover {
+            background: #e2e8f0;
+        }
+
+        .notes-cell .note-display:empty::before {
+            content: 'Click to add note...';
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .notes-cell input {
+            width: 100%;
+            padding: 4px 8px;
+            border: 2px solid var(--accent);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .notes-cell .saving {
+            color: var(--accent);
+            font-size: 11px;
+            font-style: italic;
+        }
+
+        /* Footer/Status */
+        .table-footer {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Loading/Empty states */
+        .loading,
+        .empty {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .loading::before {
+            content: '⏳';
+            display: block;
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .empty::before {
+            content: '📋';
+            display: block;
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        /* Auto-refresh toggle */
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #cbd5e1;
+            border-radius: 22px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle input:checked+.toggle-slider {
+            background: var(--success);
+        }
+
+        .toggle input:checked+.toggle-slider::before {
+            transform: translateX(18px);
+        }
+
+        @media (max-width: 768px) {
+            .filter-bar {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+
+            .filter-group input,
+            .filter-group select {
+                width: 100%;
+            }
+
+            .header-stats {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <h1>📊 Scan Log Dashboard</h1>
+        <div class="header-stats">
+            <span>Total Records: <strong id="totalCount">-</strong></span>
+            <span>Filtered: <strong id="filteredCount">-</strong></span>
+            <span>Total Pieces: <strong id="totalPieces">-</strong></span>
+            <span>Last Scan: <strong id="lastScanTime">-</strong></span>
+            <span>Refreshed: <strong id="lastUpdate">-</strong></span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Search Serial</label>
+                <input type="text" id="searchSerial" placeholder="Type to search...">
+            </div>
+            <div class="filter-group">
+                <label>Operator</label>
+                <div class="multi-select" id="operatorMultiSelect">
+                    <button class="multi-select-btn" onclick="toggleMultiSelect('operatorMultiSelect')">
+                        <span id="operatorBtnText">All Operators</span> ▼
+                    </button>
+                    <div class="multi-select-dropdown" id="operatorDropdown"></div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Station</label>
+                <div class="multi-select" id="stationMultiSelect">
+                    <button class="multi-select-btn" onclick="toggleMultiSelect('stationMultiSelect')">
+                        <span id="stationBtnText">All Stations</span> ▼
+                    </button>
+                    <div class="multi-select-dropdown" id="stationDropdown"></div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Part Number</label>
+                <div class="multi-select" id="partMultiSelect">
+                    <button class="multi-select-btn" onclick="toggleMultiSelect('partMultiSelect')">
+                        <span id="partBtnText">All Parts</span> ▼
+                    </button>
+                    <div class="multi-select-dropdown" id="partDropdown"></div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>From Date</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="filter-group">
+                <label>To Date</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <button class="btn btn-primary" onclick="applyFilters()">🔍 Apply</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">✕ Clear</button>
+            <button class="btn btn-success" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn btn-add" onclick="openAddModal()">➕ Add Record</button>
+        </div>
+
+        <!-- Quick Date Filters -->
+        <div class="quick-filters">
+            <span class="quick-label">Quick:</span>
+            <button class="quick-btn" onclick="setDateFilter('today')">Today</button>
+            <button class="quick-btn" onclick="setDateFilter('yesterday')">Yesterday</button>
+            <button class="quick-btn" onclick="setDateFilter('week')">This Week</button>
+            <button class="quick-btn" onclick="setDateFilter('month')">This Month</button>
+            <button class="quick-btn" onclick="setDateFilter('all')">All Time</button>
+        </div>
+
+        <div class="table-container">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="created_at" onclick="sortBy('created_at')">Date/Time <span
+                                    class="sort-icon">↕</span></th>
+                            <th class="sortable" data-sort="serial_number" onclick="sortBy('serial_number')">Serial
+                                Number <span class="sort-icon">↕</span></th>
+                            <th class="sortable" data-sort="part_id" onclick="sortBy('part_id')">Part Number <span
+                                    class="sort-icon">↕</span></th>
+                            <th class="sortable" data-sort="operator_name" onclick="sortBy('operator_name')">Operator
+                                <span class="sort-icon">↕</span>
+                            </th>
+                            <th class="sortable" data-sort="station_id" onclick="sortBy('station_id')">Station <span
+                                    class="sort-icon">↕</span></th>
+                            <th>Comment</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr>
+                            <td colspan="8" class="loading">Loading scan data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <div class="auto-refresh">
+                    <label class="toggle">
+                        <input type="checkbox" id="autoRefresh" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Auto-refresh (30s)</span>
+                </div>
+                <div id="footerInfo">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Protection Overlay -->
+    <div id="passwordOverlay" class="password-overlay">
+        <div class="password-modal">
+            <h2>🔒 Dashboard Access</h2>
+            <p>Please enter the dashboard password to continue.</p>
+            <input type="password" id="passwordInput" placeholder="Enter password..."
+                onkeydown="if(event.key==='Enter') checkPassword()">
+            <button class="btn btn-primary" onclick="checkPassword()">Unlock</button>
+            <div id="passwordError" style="color: #ef4444; margin-top: 10px; display: none;">Incorrect password</div>
+        </div>
+    </div>
+
+    <!-- Edit/Add Record Modal -->
+    <div id="recordModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modalTitle">Edit Record</h3>
+            <input type="hidden" id="editRecordId">
+
+            <div class="form-group">
+                <label>Serial Number</label>
+                <input type="text" id="editSerial" placeholder="Serial number">
+            </div>
+            <div class="form-group">
+                <label>Part Number</label>
+                <input type="text" id="editPart" placeholder="Part number">
+            </div>
+            <div class="form-group">
+                <label>Operator</label>
+                <select id="editOperator">
+                    <option value="">Select Operator</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Station</label>
+                <select id="editStation">
+                    <option value="">Select Station</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Comment (Batch)</label>
+                <input type="text" id="editComment" placeholder="Batch comment">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <input type="text" id="editNotes" placeholder="Dashboard notes">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeRecordModal()">Cancel</button>
+                <button class="btn btn-primary" id="saveRecordBtn" onclick="saveRecord()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>🗑️ Delete Record</h3>
+            <p>Are you sure you want to delete this scan record?</p>
+            <div id="deleteInfo"
+                style="background: #f8fafc; padding: 12px; border-radius: 8px; margin: 16px 0; font-size: 13px;"></div>
+            <input type="hidden" id="deleteRecordId">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase config (same as main app)
+        const SUPABASE_URL = 'https://ospedluufxgpfvqtznej.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zcGVkbHV1ZnhncGZ2cXR6bmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5ODgyMTUsImV4cCI6MjA4MTU2NDIxNX0.1AhtuANYs-eVrQIdW9gqt_KLhBxF4Vm0j6pqtrrJAag';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let allScans = [];
+        let filteredScans = [];
+        let refreshInterval = null;
+
+        // DOM elements
+        const tableBody = document.getElementById('tableBody');
+        const totalCount = document.getElementById('totalCount');
+        const filteredCount = document.getElementById('filteredCount');
+        const totalPieces = document.getElementById('totalPieces');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const footerInfo = document.getElementById('footerInfo');
+        const autoRefreshToggle = document.getElementById('autoRefresh');
+
+        // Constants
+        const PIECES_PER_BOX = 100;
+
+        // Format date for display
+        // Timestamps from Supabase are stored in UTC (with +00 offset).
+        // We convert them to Eastern Time for display.
+        function formatDateTime(isoString) {
+            if (!isoString) return '-';
+
+            // Parse the ISO timestamp (Supabase returns UTC with +00:00 suffix)
+            const d = new Date(isoString);
+            if (isNaN(d.getTime())) return isoString; // fallback if parsing fails
+
+            // Convert to Eastern Time using toLocaleString with timezone option
+            return d.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        // Fetch all scans with pagination (Supabase has 1000 row default limit)
+        async function fetchScans() {
+            try {
+                let allData = [];
+                let page = 0;
+                const pageSize = 1000;
+                let hasMore = true;
+
+                // Fetch in pages to get all records
+                while (hasMore) {
+                    const start = page * pageSize;
+                    const end = start + pageSize - 1;
+
+                    const { data, error } = await supabaseClient
+                        .from('scans')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .range(start, end);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        allData = allData.concat(data);
+                        page++;
+                        hasMore = data.length === pageSize; // If we got a full page, there might be more
+                    } else {
+                        hasMore = false;
+                    }
+
+                    // Safety limit to prevent infinite loops
+                    if (page > 10) {
+                        console.warn('Pagination limit reached (10,000 records)');
+                        break;
+                    }
+                }
+
+                allScans = allData;
+
+                // Populate filter dropdowns
+                populateFilters();
+
+                // Apply current filters
+                applyFilters();
+
+                // Update stats
+                totalCount.textContent = allScans.length.toLocaleString();
+                lastUpdate.textContent = new Date().toLocaleTimeString();
+
+                // Calculate last scan time (relative)
+                if (allScans.length > 0 && allScans[0].created_at) {
+                    const lastScan = new Date(allScans[0].created_at);
+                    const now = new Date();
+                    const diffMs = now - lastScan;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    let relativeTime;
+                    if (diffMins < 1) relativeTime = 'Just now';
+                    else if (diffMins < 60) relativeTime = `${diffMins} min ago`;
+                    else if (diffHours < 24) relativeTime = `${diffHours} hr ago`;
+                    else relativeTime = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+                    document.getElementById('lastScanTime').textContent = relativeTime;
+                }
+
+            } catch (e) {
+                console.error('Fetch error:', e);
+                tableBody.innerHTML = '<tr><td colspan="6" class="empty">Error loading data. Please refresh.</td></tr>';
+            }
+        }
+
+        // Populate multi-select filter dropdowns (Excel-style)
+        function populateFilters() {
+            const operators = [...new Set(allScans.map(s => s.operator_name).filter(Boolean))].sort();
+            const stations = [...new Set(allScans.map(s => s.station_id).filter(Boolean))].sort();
+            const parts = [...new Set(allScans.map(s => s.part_id).filter(Boolean))].sort();
+
+            // Generate Excel-style dropdown HTML
+            function generateDropdownHTML(type, items) {
+                return `
+                    <div class="multi-select-header">
+                        <input type="text" placeholder="Search..." oninput="filterDropdownList('${type}', this.value)">
+                        <button onclick="selectAllItems('${type}')">All</button>
+                        <button onclick="clearAllItems('${type}')">Clear</button>
+                    </div>
+                    <div class="multi-select-list" id="${type}List">
+                        ${items.map(item => `
+                            <label>
+                                <input type="checkbox" value="${item}" onchange="updateMultiSelect('${type}')">
+                                ${item}
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="multi-select-footer">
+                        <span id="${type}Count">${items.length} items</span>
+                        <button onclick="closeDropdown('${type}')">OK</button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('operatorDropdown').innerHTML = generateDropdownHTML('operator', operators);
+            document.getElementById('stationDropdown').innerHTML = generateDropdownHTML('station', stations);
+            document.getElementById('partDropdown').innerHTML = generateDropdownHTML('part', parts);
+        }
+
+        // Filter dropdown list based on search
+        function filterDropdownList(type, searchText) {
+            const list = document.getElementById(`${type}List`);
+            const labels = list.querySelectorAll('label');
+            const search = searchText.toLowerCase();
+
+            labels.forEach(label => {
+                const text = label.textContent.toLowerCase();
+                label.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        // Select all items
+        function selectAllItems(type) {
+            const list = document.getElementById(`${type}List`);
+            list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                if (cb.closest('label').style.display !== 'none') {
+                    cb.checked = true;
+                }
+            });
+            updateMultiSelect(type);
+        }
+
+        // Clear all items
+        function clearAllItems(type) {
+            const list = document.getElementById(`${type}List`);
+            list.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            updateMultiSelect(type);
+        }
+
+        // Close dropdown
+        function closeDropdown(type) {
+            document.getElementById(`${type}Dropdown`).classList.remove('show');
+        }
+
+        // Toggle multi-select dropdown visibility (with positioning)
+        function toggleMultiSelect(containerId) {
+            const container = document.getElementById(containerId);
+            const btn = container.querySelector('.multi-select-btn');
+            const dropdown = container.querySelector('.multi-select-dropdown');
+
+            // Close other dropdowns first
+            document.querySelectorAll('.multi-select-dropdown').forEach(dd => {
+                if (dd !== dropdown) dd.classList.remove('show');
+            });
+
+            // Toggle this dropdown
+            dropdown.classList.toggle('show');
+
+            // Position the dropdown below the button
+            if (dropdown.classList.contains('show')) {
+                const rect = btn.getBoundingClientRect();
+                dropdown.style.top = (rect.bottom + 4) + 'px';
+                dropdown.style.left = Math.max(10, rect.left) + 'px';
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.multi-select')) {
+                document.querySelectorAll('.multi-select-dropdown').forEach(dd => dd.classList.remove('show'));
+            }
+        });
+
+        // Update button text based on selections
+        function updateMultiSelect(type) {
+            const dropdown = document.getElementById(`${type}Dropdown`);
+            const btnText = document.getElementById(`${type}BtnText`);
+            const checked = dropdown.querySelectorAll('input:checked');
+
+            if (checked.length === 0) {
+                btnText.textContent = type === 'operator' ? 'All Operators' :
+                    type === 'station' ? 'All Stations' : 'All Parts';
+            } else if (checked.length === 1) {
+                btnText.textContent = checked[0].value;
+            } else {
+                btnText.textContent = `${checked.length} selected`;
+            }
+
+            applyFilters();
+        }
+
+        // Get selected values from multi-select
+        function getSelectedValues(type) {
+            const dropdown = document.getElementById(`${type}Dropdown`);
+            return Array.from(dropdown.querySelectorAll('input:checked')).map(cb => cb.value);
+        }
+
+        // Sorting state
+        let currentSort = { column: 'created_at', direction: 'desc' };
+
+        // Sort by column
+        function sortBy(column) {
+            // Toggle direction if same column
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            // Update header icons
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('asc', 'desc');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) icon.textContent = '↕';
+            });
+
+            const activeHeader = document.querySelector(`th[data-sort="${column}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add(currentSort.direction);
+                const icon = activeHeader.querySelector('.sort-icon');
+                if (icon) icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+            }
+
+            // Sort the data
+            filteredScans.sort((a, b) => {
+                let valA = a[column] || '';
+                let valB = b[column] || '';
+
+                if (column === 'created_at') {
+                    valA = new Date(valA);
+                    valB = new Date(valB);
+                } else {
+                    valA = String(valA).toLowerCase();
+                    valB = String(valB).toLowerCase();
+                }
+
+                if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            renderTable();
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const searchSerial = document.getElementById('searchSerial').value.toLowerCase().trim();
+            const selectedOperators = getSelectedValues('operator');
+            const selectedStations = getSelectedValues('station');
+            const selectedParts = getSelectedValues('part');
+            const filterDateFrom = document.getElementById('filterDateFrom').value;
+            const filterDateTo = document.getElementById('filterDateTo').value;
+
+            filteredScans = allScans.filter(scan => {
+                // Serial search
+                if (searchSerial && !scan.serial_number?.toLowerCase().includes(searchSerial)) {
+                    return false;
+                }
+                // Operator (multi-select)
+                if (selectedOperators.length > 0 && !selectedOperators.includes(scan.operator_name)) {
+                    return false;
+                }
+                // Station (multi-select)
+                if (selectedStations.length > 0 && !selectedStations.includes(scan.station_id)) {
+                    return false;
+                }
+                // Part (multi-select)
+                if (selectedParts.length > 0 && !selectedParts.includes(scan.part_id)) {
+                    return false;
+                }
+                // Date from/to - convert UTC timestamp to Eastern Time before comparing
+                if (filterDateFrom || filterDateTo) {
+                    const scanDate = new Date(scan.created_at);
+                    if (isNaN(scanDate.getTime())) return true; // Skip invalid dates
+
+                    // Get the date in Eastern Time by using toLocaleDateString with timezone
+                    // This returns a string like "12/18/2025", we need to convert to YYYY-MM-DD
+                    const estDateParts = scanDate.toLocaleDateString('en-CA', {
+                        timeZone: 'America/New_York'
+                    }); // en-CA gives YYYY-MM-DD format
+
+                    if (filterDateFrom && estDateParts < filterDateFrom) return false;
+                    if (filterDateTo && estDateParts > filterDateTo) return false;
+                }
+                return true;
+            });
+
+            renderTable();
+        }
+
+        // Render table
+        function renderTable() {
+            filteredCount.textContent = filteredScans.length.toLocaleString();
+            totalPieces.textContent = (filteredScans.length * PIECES_PER_BOX).toLocaleString();
+            footerInfo.textContent = `Showing ${filteredScans.length} scans = ${(filteredScans.length * PIECES_PER_BOX).toLocaleString()} pieces`;
+
+            if (filteredScans.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="empty">No scans match your filters.</td></tr>';
+                totalPieces.textContent = '0';
+                return;
+            }
+
+            tableBody.innerHTML = filteredScans.map(scan => `
+                <tr>
+                    <td class="timestamp">${formatDateTime(scan.created_at)}</td>
+                    <td class="serial-num">${scan.serial_number || '-'}</td>
+                    <td class="part-num">${scan.part_id || '-'}</td>
+                    <td><span class="operator-badge">${scan.operator_name || '-'}</span></td>
+                    <td><span class="station-badge">${scan.station_id || '-'}</span></td>
+                    <td class="comment" title="${scan.batch_comment || ''}">${scan.batch_comment || ''}</td>
+                    <td class="notes-cell">
+                        <div class="note-display" 
+                             data-id="${scan.id}" 
+                             onclick="editNote(this, ${scan.id})"
+                             title="Click to edit">${escapeHtml(scan.dashboard_notes || '')}</div>
+                    </td>
+                    <td>
+                        <button class="action-btn edit" onclick="openEditModal(${scan.id})">✏️ Edit</button>
+                        <button class="action-btn delete" onclick="openDeleteModal(${scan.id})">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Edit note inline
+        function editNote(element, scanId) {
+            const currentValue = element.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentValue;
+            input.placeholder = 'Type note and press Enter...';
+
+            // Replace display with input
+            element.style.display = 'none';
+            element.parentNode.appendChild(input);
+            input.focus();
+            input.select();
+
+            // Save on Enter or blur
+            const saveHandler = async () => {
+                const newValue = input.value.trim();
+
+                // Show saving indicator
+                input.disabled = true;
+                input.value = 'Saving...';
+
+                try {
+                    await saveNote(scanId, newValue);
+                    element.textContent = newValue;
+                } catch (e) {
+                    console.error('Save failed:', e);
+                    alert('Failed to save note. Please try again.');
+                    element.textContent = currentValue;
+                }
+
+                // Restore display
+                input.remove();
+                element.style.display = '';
+            };
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveHandler();
+                } else if (e.key === 'Escape') {
+                    input.remove();
+                    element.style.display = '';
+                }
+            });
+
+            input.addEventListener('blur', saveHandler);
+        }
+
+        // Save note to Supabase
+        async function saveNote(scanId, note) {
+            const { error } = await supabaseClient
+                .from('scans')
+                .update({ dashboard_notes: note })
+                .eq('id', scanId);
+
+            if (error) throw error;
+
+            // Update local data too
+            const scan = allScans.find(s => s.id === scanId);
+            if (scan) scan.dashboard_notes = note;
+        }
+
+        // Quick date filter presets
+        function setDateFilter(preset) {
+            const today = new Date();
+            const dateFrom = document.getElementById('filterDateFrom');
+            const dateTo = document.getElementById('filterDateTo');
+
+            // Format date as YYYY-MM-DD in Eastern Time
+            const formatDate = (date) => {
+                return date.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+            };
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Find and highlight the clicked button
+            event.target.classList.add('active');
+
+            switch (preset) {
+                case 'today':
+                    dateFrom.value = formatDate(today);
+                    dateTo.value = formatDate(today);
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    dateFrom.value = formatDate(yesterday);
+                    dateTo.value = formatDate(yesterday);
+                    break;
+                case 'week':
+                    const weekStart = new Date(today);
+                    weekStart.setDate(today.getDate() - today.getDay()); // Sunday
+                    dateFrom.value = formatDate(weekStart);
+                    dateTo.value = formatDate(today);
+                    break;
+                case 'month':
+                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                    dateFrom.value = formatDate(monthStart);
+                    dateTo.value = formatDate(today);
+                    break;
+                case 'all':
+                    dateFrom.value = '';
+                    dateTo.value = '';
+                    break;
+            }
+
+            applyFilters();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchSerial').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+
+            // Clear multi-select checkboxes
+            ['operator', 'station', 'part'].forEach(type => {
+                const dropdown = document.getElementById(`${type}Dropdown`);
+                dropdown.querySelectorAll('input').forEach(cb => cb.checked = false);
+                updateMultiSelect(type);
+            });
+
+            // Remove active class from quick buttons
+            document.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
+
+            applyFilters();
+        }
+
+        // Export to CSV
+        function exportCSV() {
+            if (filteredScans.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const headers = ['Date/Time', 'Serial Number', 'Part Number', 'Operator', 'Station', 'Comment', 'Notes'];
+            const rows = filteredScans.map(scan => [
+                formatDateTime(scan.created_at),
+                scan.serial_number || '',
+                scan.part_id || '',
+                scan.operator_name || '',
+                scan.station_id || '',
+                (scan.batch_comment || '').replace(/,/g, ';'), // Escape commas
+                (scan.dashboard_notes || '').replace(/,/g, ';') // Escape commas
+            ]);
+
+            const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `scan-log-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Auto-refresh handling
+        function startAutoRefresh() {
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(() => {
+                if (autoRefreshToggle.checked) {
+                    fetchScans();
+                }
+            }, 30000);
+        }
+
+        autoRefreshToggle.addEventListener('change', () => {
+            if (autoRefreshToggle.checked) {
+                startAutoRefresh();
+            } else if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+
+        // Live search on serial input
+        document.getElementById('searchSerial').addEventListener('input', () => {
+            applyFilters();
+        });
+
+        // ===== PASSWORD PROTECTION =====
+        const DASHBOARD_PASSWORD = 'PRI2025'; // Change this to your desired password
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput');
+            const error = document.getElementById('passwordError');
+
+            if (input.value === DASHBOARD_PASSWORD) {
+                document.getElementById('passwordOverlay').classList.add('hidden');
+                sessionStorage.setItem('dashboardUnlocked', 'true');
+            } else {
+                error.style.display = 'block';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // Check if already unlocked this session
+        if (sessionStorage.getItem('dashboardUnlocked') === 'true') {
+            document.getElementById('passwordOverlay').classList.add('hidden');
+        }
+
+        // ===== EDIT MODAL FUNCTIONS =====
+        let isEditMode = false;
+
+        function populateModalDropdowns() {
+            const operators = [...new Set(allScans.map(s => s.operator_name).filter(Boolean))].sort();
+            const stations = [...new Set(allScans.map(s => s.station_id).filter(Boolean))].sort();
+
+            const opSelect = document.getElementById('editOperator');
+            const stSelect = document.getElementById('editStation');
+
+            opSelect.innerHTML = '<option value="">Select Operator</option>' +
+                operators.map(o => `<option value="${o}">${o}</option>`).join('');
+            stSelect.innerHTML = '<option value="">Select Station</option>' +
+                stations.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function openEditModal(scanId) {
+            const scan = allScans.find(s => s.id === scanId);
+            if (!scan) return;
+
+            isEditMode = true;
+            populateModalDropdowns();
+
+            document.getElementById('modalTitle').textContent = '✏️ Edit Record';
+            document.getElementById('editRecordId').value = scanId;
+            document.getElementById('editSerial').value = scan.serial_number || '';
+            document.getElementById('editPart').value = scan.part_id || '';
+            document.getElementById('editOperator').value = scan.operator_name || '';
+            document.getElementById('editStation').value = scan.station_id || '';
+            document.getElementById('editComment').value = scan.batch_comment || '';
+            document.getElementById('editNotes').value = scan.dashboard_notes || '';
+
+            document.getElementById('recordModal').style.display = 'flex';
+        }
+
+        function openAddModal() {
+            isEditMode = false;
+            populateModalDropdowns();
+
+            document.getElementById('modalTitle').textContent = '➕ Add New Record';
+            document.getElementById('editRecordId').value = '';
+            document.getElementById('editSerial').value = '';
+            document.getElementById('editPart').value = '';
+            document.getElementById('editOperator').value = '';
+            document.getElementById('editStation').value = '';
+            document.getElementById('editComment').value = '';
+            document.getElementById('editNotes').value = '';
+
+            document.getElementById('recordModal').style.display = 'flex';
+        }
+
+        function closeRecordModal() {
+            document.getElementById('recordModal').style.display = 'none';
+        }
+
+        async function saveRecord() {
+            const btn = document.getElementById('saveRecordBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const recordData = {
+                serial_number: document.getElementById('editSerial').value.trim(),
+                part_id: document.getElementById('editPart').value.trim(),
+                operator_name: document.getElementById('editOperator').value,
+                station_id: document.getElementById('editStation').value,
+                batch_comment: document.getElementById('editComment').value.trim(),
+                dashboard_notes: document.getElementById('editNotes').value.trim()
+            };
+
+            if (!recordData.serial_number) {
+                alert('Serial Number is required');
+                btn.disabled = false;
+                btn.textContent = 'Save';
+                return;
+            }
+
+            try {
+                if (isEditMode) {
+                    // Update existing record
+                    const recordId = document.getElementById('editRecordId').value;
+                    const { error } = await supabaseClient
+                        .from('scans')
+                        .update(recordData)
+                        .eq('id', recordId);
+
+                    if (error) throw error;
+                } else {
+                    // Insert new record
+                    const { error } = await supabaseClient
+                        .from('scans')
+                        .insert([recordData]);
+
+                    if (error) throw error;
+                }
+
+                closeRecordModal();
+                await fetchScans(); // Refresh data
+
+            } catch (e) {
+                console.error('Save error:', e);
+                alert('Failed to save record: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            }
+        }
+
+        // ===== DELETE MODAL FUNCTIONS =====
+        function openDeleteModal(scanId) {
+            const scan = allScans.find(s => s.id === scanId);
+            if (!scan) return;
+
+            document.getElementById('deleteRecordId').value = scanId;
+            document.getElementById('deleteInfo').innerHTML = `
+                <strong>Serial:</strong> ${scan.serial_number || '-'}<br>
+                <strong>Part:</strong> ${scan.part_id || '-'}<br>
+                <strong>Operator:</strong> ${scan.operator_name || '-'}<br>
+                <strong>Date:</strong> ${formatDateTime(scan.created_at)}
+            `;
+
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+        }
+
+        async function confirmDelete() {
+            const recordId = document.getElementById('deleteRecordId').value;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('scans')
+                    .delete()
+                    .eq('id', recordId);
+
+                if (error) throw error;
+
+                closeDeleteModal();
+                await fetchScans(); // Refresh data
+
+            } catch (e) {
+                console.error('Delete error:', e);
+                alert('Failed to delete record: ' + e.message);
+            }
+        }
+
+        // Initialize
+        fetchScans();
+        startAutoRefresh();
+    </script>
+</body>
+
+</html>
