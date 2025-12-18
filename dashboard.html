@@ -1077,13 +1077,21 @@
         }
 
         // Populate multi-select filter dropdowns (Excel-style)
+        // Preserves current selections during refresh
         function populateFilters() {
+            // Save current selections BEFORE regenerating HTML
+            const savedSelections = {
+                operator: getSelectedValues('operator'),
+                station: getSelectedValues('station'),
+                part: getSelectedValues('part')
+            };
+
             const operators = [...new Set(allScans.map(s => s.operator_name).filter(Boolean))].sort();
             const stations = [...new Set(allScans.map(s => s.station_id).filter(Boolean))].sort();
             const parts = [...new Set(allScans.map(s => s.part_id).filter(Boolean))].sort();
 
             // Generate Excel-style dropdown HTML
-            function generateDropdownHTML(type, items) {
+            function generateDropdownHTML(type, items, selected) {
                 return `
                     <div class="multi-select-header">
                         <input type="text" placeholder="Search..." oninput="filterDropdownList('${type}', this.value)">
@@ -1093,7 +1101,7 @@
                     <div class="multi-select-list" id="${type}List">
                         ${items.map(item => `
                             <label>
-                                <input type="checkbox" value="${item}" onchange="updateMultiSelect('${type}')">
+                                <input type="checkbox" value="${item}" ${selected.includes(item) ? 'checked' : ''} onchange="updateMultiSelect('${type}')">
                                 ${item}
                             </label>
                         `).join('')}
@@ -1105,9 +1113,34 @@
                 `;
             }
 
-            document.getElementById('operatorDropdown').innerHTML = generateDropdownHTML('operator', operators);
-            document.getElementById('stationDropdown').innerHTML = generateDropdownHTML('station', stations);
-            document.getElementById('partDropdown').innerHTML = generateDropdownHTML('part', parts);
+            document.getElementById('operatorDropdown').innerHTML = generateDropdownHTML('operator', operators, savedSelections.operator);
+            document.getElementById('stationDropdown').innerHTML = generateDropdownHTML('station', stations, savedSelections.station);
+            document.getElementById('partDropdown').innerHTML = generateDropdownHTML('part', parts, savedSelections.part);
+
+            // Update button text to reflect restored selections
+            ['operator', 'station', 'part'].forEach(type => {
+                if (savedSelections[type].length > 0) {
+                    updateMultiSelectButtonText(type);
+                }
+            });
+        }
+
+        // Helper to update button text without triggering filter (for restore)
+        function updateMultiSelectButtonText(type) {
+            const dropdown = document.getElementById(`${type}Dropdown`);
+            if (!dropdown) return;
+            const btnText = document.getElementById(`${type}BtnText`);
+            if (!btnText) return;
+            const checked = dropdown.querySelectorAll('input:checked');
+
+            if (checked.length === 0) {
+                btnText.textContent = type === 'operator' ? 'All Operators' :
+                    type === 'station' ? 'All Stations' : 'All Parts';
+            } else if (checked.length === 1) {
+                btnText.textContent = checked[0].value;
+            } else {
+                btnText.textContent = `${checked.length} selected`;
+            }
         }
 
         // Filter dropdown list based on search
