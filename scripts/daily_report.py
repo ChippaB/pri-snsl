@@ -480,7 +480,7 @@ def backup_to_google_sheets(scans: list, report_date: datetime):
         
         # Append all rows at once
         if rows_to_append:
-            worksheet.append_rows(rows_to_append, value_input_option='USER_ENTERED')
+            worksheet.append_rows(rows_to_append, value_input_option='RAW')
             print(f"[OK] Google Sheets backup: {len(rows_to_append)} rows appended")
         else:
             print("[WARN] No rows to backup to Google Sheets")
