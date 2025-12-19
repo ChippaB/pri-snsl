@@ -266,11 +266,43 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     row += 1
     
     # Grand Total data
+    gt_start_row = row  # Remember starting row for operator table
     for part in sorted(part_totals.keys()):
         ws.cell(row=row, column=1, value=part).border = border
         ws.cell(row=row, column=2, value=part_totals[part]['scans']).border = border
         ws.cell(row=row, column=3, value=part_totals[part]['pieces']).border = border
         row += 1
+    
+    # ===== GRAND TOTAL BY OPERATOR (positioned to the right) =====
+    # Calculate operator totals
+    operator_totals = {}
+    for scan in scans:
+        op = scan.get('operator_name', 'Unknown') or 'Unknown'
+        if op not in operator_totals:
+            operator_totals[op] = {'scans': 0, 'pieces': 0}
+        operator_totals[op]['scans'] += 1
+        operator_totals[op]['pieces'] += PIECES_PER_BOX
+    
+    # Operator totals header (column E)
+    op_row = gt_start_row - 2  # Same row as "Grand Total by Part Number" header
+    ws.cell(row=op_row, column=5, value="Grand Total by Operator").font = Font(bold=True, size=12)
+    op_row += 1
+    
+    # Operator totals column headers
+    op_headers = ['Operator', 'Total Scans (Boxes)', 'Total Pieces']
+    for col, header in enumerate(op_headers, 5):
+        cell = ws.cell(row=op_row, column=col, value=header)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+        cell.border = border
+    op_row += 1
+    
+    # Operator totals data
+    for op in sorted(operator_totals.keys()):
+        ws.cell(row=op_row, column=5, value=op).border = border
+        ws.cell(row=op_row, column=6, value=operator_totals[op]['scans']).border = border
+        ws.cell(row=op_row, column=7, value=operator_totals[op]['pieces']).border = border
+        op_row += 1
     
     # Auto-adjust column widths for main sheet
     for col in range(1, 8):
