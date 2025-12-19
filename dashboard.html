@@ -538,10 +538,11 @@
             border-radius: 3px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
             z-index: 1000;
-            width: 160px;
+            width: 180px;
             max-height: 300px;
             display: none;
             flex-direction: column;
+            text-align: left;
         }
 
         .multi-select-dropdown.show {
@@ -553,7 +554,7 @@
             border-bottom: 1px solid #ddd;
             display: flex;
             flex-wrap: wrap;
-            gap: 2px;
+            gap: 3px;
             background: #f5f5f5;
         }
 
@@ -563,6 +564,7 @@
             border: 1px solid #999;
             border-radius: 2px;
             font-size: 11px;
+            box-sizing: border-box;
         }
 
         .multi-select-header button {
@@ -582,14 +584,15 @@
         .multi-select-list {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 0;
+            margin: 0;
         }
 
         .multi-select-list label {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            padding: 2px 2px;
+            padding: 2px 4px;
             cursor: pointer;
             font-size: 11px;
             line-height: 1.2;
@@ -600,29 +603,29 @@
         }
 
         .multi-select-list input[type="checkbox"] {
-            width: 13px;
-            height: 13px;
+            width: 12px;
+            height: 12px;
+            min-width: 12px;
             margin: 0 4px 0 0;
             cursor: pointer;
-            flex-shrink: 0;
         }
 
         .multi-select-footer {
-            padding: 6px 8px;
+            padding: 4px;
             border-top: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 11px;
+            font-size: 10px;
             color: #666;
             background: #f5f5f5;
         }
 
         .multi-select-footer button {
-            padding: 4px 12px;
+            padding: 3px 10px;
             border: 1px solid #999;
             border-radius: 2px;
-            font-size: 11px;
+            font-size: 10px;
             cursor: pointer;
             background: white;
         }
