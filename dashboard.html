@@ -823,17 +823,21 @@
 
         .operator-cards {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            flex-wrap: nowrap;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 5px;
         }
 
         .operator-card {
             background: white;
-            border-radius: 8px;
-            padding: 12px 16px;
-            min-width: 200px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-            border-left: 4px solid #3b82f6;
+            border-radius: 6px;
+            padding: 8px 10px;
+            min-width: 130px;
+            max-width: 140px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+            border-left: 3px solid #3b82f6;
+            flex-shrink: 0;
         }
 
         .operator-card.active-recently {
@@ -847,46 +851,56 @@
 
         .operator-card-name {
             font-weight: 700;
-            font-size: 15px;
+            font-size: 13px;
             color: #1e3a5f;
-            margin-bottom: 6px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .operator-card-stats {
-            display: flex;
-            gap: 15px;
-            font-size: 12px;
+            font-size: 11px;
             color: #64748b;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .operator-card-stats strong {
             color: #1e293b;
+            font-size: 14px;
         }
 
         .operator-card-last {
-            font-size: 11px;
+            font-size: 10px;
             color: #64748b;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 6px;
-            margin-top: 4px;
+            line-height: 1.4;
         }
 
         .operator-card-last .serial {
             font-family: 'SF Mono', Monaco, Consolas, monospace;
             color: #059669;
             font-weight: 600;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .operator-card-last .part {
             font-family: 'SF Mono', Monaco, Consolas, monospace;
             color: #3b82f6;
             font-weight: 600;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .operator-card-last .time-ago {
             color: #94a3b8;
             font-style: italic;
+            display: block;
+            margin-top: 2px;
         }
 
         .no-operators-today {
@@ -1278,13 +1292,11 @@
                 html += `
                     <div class="operator-card ${statusClass}">
                         <div class="operator-card-name">${op}</div>
-                        <div class="operator-card-stats">
-                            <span>Scans: <strong>${data.count}</strong></span>
-                        </div>
+                        <div class="operator-card-stats">Scans: <strong>${data.count}</strong></div>
                         <div class="operator-card-last">
-                            Last: <span class="serial">${data.lastSerial}</span> 
+                            <span class="serial">${data.lastSerial}</span>
                             <span class="part">${data.lastPart}</span>
-                            <span class="time-ago">(${timeAgoText})</span>
+                            <span class="time-ago">${timeAgoText}</span>
                         </div>
                     </div>
                 `;
