@@ -431,6 +431,7 @@
         }
 
         .part-num {
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
             color: var(--accent);
             font-weight: 600;
             background: #eff6ff;
@@ -789,7 +790,6 @@
         <div class="header-stats">
             <span>Total Records: <strong id="totalCount">-</strong></span>
             <span>Filtered: <strong id="filteredCount">-</strong></span>
-            <span>Total Pieces: <strong id="totalPieces">-</strong></span>
             <span>Last Scan: <strong id="lastScanTime">-</strong></span>
             <span>Refreshed: <strong id="lastUpdate">-</strong></span>
         </div>
@@ -979,13 +979,9 @@
         const tableBody = document.getElementById('tableBody');
         const totalCount = document.getElementById('totalCount');
         const filteredCount = document.getElementById('filteredCount');
-        const totalPieces = document.getElementById('totalPieces');
         const lastUpdate = document.getElementById('lastUpdate');
         const footerInfo = document.getElementById('footerInfo');
         const autoRefreshToggle = document.getElementById('autoRefresh');
-
-        // Constants
-        const PIECES_PER_BOX = 100;
 
         // Format date for display
         // Timestamps from Supabase are stored in UTC (with +00 offset).
@@ -1333,8 +1329,7 @@
         // Render table
         function renderTable() {
             filteredCount.textContent = filteredScans.length.toLocaleString();
-            totalPieces.textContent = (filteredScans.length * PIECES_PER_BOX).toLocaleString();
-            footerInfo.textContent = `Showing ${filteredScans.length} scans = ${(filteredScans.length * PIECES_PER_BOX).toLocaleString()} pieces`;
+            footerInfo.textContent = `Showing ${filteredScans.length.toLocaleString()} scans`;
 
             if (filteredScans.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="8" class="empty">No scans match your filters.</td></tr>';
