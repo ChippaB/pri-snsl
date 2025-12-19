@@ -405,6 +405,62 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     
     print(f"[OK] Added Raw Data sheet with {len(scans)} records")
     
+    # ===== CREATE PER-OPERATOR SHEETS =====
+    # Get unique operators from this day's scans
+    operators = sorted(set(scan.get('operator_name', 'Unknown') or 'Unknown' for scan in scans))
+    
+    for operator in operators:
+        # Filter scans for this operator
+        operator_scans = [s for s in scans if (s.get('operator_name') or 'Unknown') == operator]
+        
+        if not operator_scans:
+            continue
+        
+        # Create sheet (Excel sheet names max 31 chars, no special chars)
+        sheet_name = f"{operator[:25]}"  # Truncate if too long
+        # Remove any invalid characters
+        sheet_name = ''.join(c for c in sheet_name if c not in '[]:*?/\\')
+        if not sheet_name:
+            sheet_name = "Unknown"
+        
+        ws_op = wb.create_sheet(title=sheet_name)
+        
+        # Headers
+        op_headers = ['Timestamp (EST)', 'Serial Number', 'Part Number', 'Station', 'Raw Barcode', 'Comment']
+        for col, header in enumerate(op_headers, 1):
+            cell = ws_op.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center')
+            cell.border = border
+        
+        # Data rows
+        for row_num, scan in enumerate(operator_scans, 2):
+            # Convert timestamp to EST
+            ts = scan.get('created_at', '')
+            if ts:
+                try:
+                    dt = datetime.fromisoformat(ts.replace('+00:00', '').replace('Z', ''))
+                    ts_display = (dt - timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    ts_display = ts
+            else:
+                ts_display = ''
+            
+            ws_op.cell(row=row_num, column=1, value=ts_display).border = border
+            ws_op.cell(row=row_num, column=2, value=scan.get('serial_number', '')).border = border
+            ws_op.cell(row=row_num, column=3, value=scan.get('part_id', '')).border = border
+            ws_op.cell(row=row_num, column=4, value=scan.get('station_id', '')).border = border
+            ws_op.cell(row=row_num, column=5, value=scan.get('raw_scan', '')).border = border
+            ws_op.cell(row=row_num, column=6, value=scan.get('batch_comment', '')).border = border
+        
+        # Column widths
+        op_widths = [22, 18, 14, 10, 45, 25]
+        for col, width in enumerate(op_widths, 1):
+            ws_op.column_dimensions[get_column_letter(col)].width = width
+        
+        print(f"[OK] Added sheet for {operator} with {len(operator_scans)} scans")
+    
     # Save to temp file
     temp_path = tempfile.mktemp(suffix='.xlsx')
     wb.save(temp_path)
