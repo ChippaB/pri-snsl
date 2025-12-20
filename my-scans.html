@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>My Scans | Polytechnic Resources</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #072549;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --muted: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 16px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--navy);
+            color: white;
+            padding: 16px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Operator Selector */
+        .selector-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .selector-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .selector-card select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 18px;
+            font-family: inherit;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 48px;
+        }
+
+        .selector-card select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Stats Card */
+        .stats-card {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            color: white;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .stats-main {
+            flex: 1;
+        }
+
+        .stats-label {
+            font-size: 13px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stats-value {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stats-label-small {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .stats-last-scan {
+            text-align: right;
+        }
+
+        .last-scan-serial {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+        }
+
+        .last-scan-part {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .last-scan-time {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        /* Date Filter */
+        .date-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .date-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .date-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .date-btn:hover:not(.active) {
+            background: #f1f5f9;
+        }
+
+        /* Scans List */
+        .scans-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .scans-header {
+            padding: 12px 16px;
+            background: #f1f5f9;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .scans-list {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .scan-row {
+            display: flex;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            gap: 12px;
+        }
+
+        .scan-row:last-child {
+            border-bottom: none;
+        }
+
+        .scan-time {
+            flex: 0 0 70px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .scan-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .scan-serial {
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            color: #059669;
+            background: #ecfdf5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .scan-part {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .empty-state::before {
+            content: '📋';
+            display: block;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Loading */
+        .loading {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .loading::before {
+            content: '⏳';
+            display: block;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 16px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Refresh indicator */
+        .refresh-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 12px;
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>📋 My Scan History</h1>
+    </div>
+
+    <div class="container">
+        <!-- Operator Selector -->
+        <div class="selector-card">
+            <label class="selector-label">Select Your Name</label>
+            <select id="operatorSelect">
+                <option value="">-- Choose Name --</option>
+            </select>
+        </div>
+
+        <!-- Stats Card (hidden until operator selected) -->
+        <div class="stats-card" id="statsCard" style="display: none;">
+            <div class="stats-row">
+                <div class="stats-main">
+                    <div class="stats-label">Today's Scans</div>
+                    <div class="stats-value" id="todayCount">0</div>
+                    <div class="stats-label-small" id="dateRangeLabel">Today</div>
+                </div>
+                <div class="stats-last-scan">
+                    <div class="stats-label">Last Scan</div>
+                    <div class="last-scan-serial" id="lastSerial">—</div>
+                    <div class="last-scan-part" id="lastPart">—</div>
+                    <div class="last-scan-time" id="lastTime"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="date-filter" id="dateFilter" style="display: none;">
+            <button class="date-btn active" data-range="today">Today</button>
+            <button class="date-btn" data-range="week">This Week</button>
+            <button class="date-btn" data-range="all">All Time</button>
+        </div>
+
+        <!-- Scans List -->
+        <div class="scans-card" id="scansCard" style="display: none;">
+            <div class="scans-header">
+                <span id="scansTitle">Your Scans</span>
+            </div>
+            <div class="scans-list" id="scansList">
+                <div class="empty-state">Select your name above to view your scans.</div>
+            </div>
+        </div>
+
+        <div class="refresh-info" id="refreshInfo" style="display: none;">
+            <span class="refresh-dot"></span>
+            <span>Auto-refreshes every 30 seconds</span>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>View only — No editing</p>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase config (same as dashboard)
+        const SUPABASE_URL = 'https://ospedluufxgpfvqtznej.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zcGVkbHV1ZnhncGZ2cXR6bmVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5ODgyMTUsImV4cCI6MjA4MTU2NDIxNX0.1AhtuANYs-eVrQIdW9gqt_KLhBxF4Vm0j6pqtrrJAag';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // DOM elements
+        const operatorSelect = document.getElementById('operatorSelect');
+        const statsCard = document.getElementById('statsCard');
+        const dateFilter = document.getElementById('dateFilter');
+        const scansCard = document.getElementById('scansCard');
+        const scansList = document.getElementById('scansList');
+        const refreshInfo = document.getElementById('refreshInfo');
+
+        let allScans = [];
+        let currentDateRange = 'today';
+        let refreshInterval = null;
+
+        // Format time for display (Eastern Time)
+        function formatTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', {
+                timeZone: 'America/New_York',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        // Format date for display
+        function formatDate(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('en-US', {
+                timeZone: 'America/New_York',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Get relative time
+        function getRelativeTime(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hr ago`;
+            return formatDate(isoString);
+        }
+
+        // Get today's date in EST
+        function getTodayEST() {
+            return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        }
+
+        // Get start of week in EST
+        function getWeekStartEST() {
+            const now = new Date();
+            const day = now.getDay();
+            const diff = now.getDate() - day;
+            const weekStart = new Date(now.setDate(diff));
+            return weekStart.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+        }
+
+        // Populate operators dropdown
+        async function loadOperators() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('operators')
+                    .select('name')
+                    .eq('active', true)
+                    .order('name');
+
+                if (data && !error) {
+                    data.forEach(op => {
+                        const option = document.createElement('option');
+                        option.value = op.name;
+                        option.textContent = op.name;
+                        operatorSelect.appendChild(option);
+                    });
+                }
+
+                // Restore last selected operator
+                const savedOperator = localStorage.getItem('myScans_operator');
+                if (savedOperator) {
+                    operatorSelect.value = savedOperator;
+                    if (operatorSelect.value) {
+                        loadScans();
+                    }
+                }
+            } catch (e) {
+                console.error('Error loading operators:', e);
+            }
+        }
+
+        // Load scans for selected operator
+        async function loadScans() {
+            const operator = operatorSelect.value;
+            if (!operator) {
+                statsCard.style.display = 'none';
+                dateFilter.style.display = 'none';
+                scansCard.style.display = 'none';
+                refreshInfo.style.display = 'none';
+                return;
+            }
+
+            // Save selection
+            localStorage.setItem('myScans_operator', operator);
+
+            // Show loading
+            scansList.innerHTML = '<div class="loading">Loading your scans...</div>';
+            statsCard.style.display = 'block';
+            dateFilter.style.display = 'flex';
+            scansCard.style.display = 'block';
+            refreshInfo.style.display = 'flex';
+
+            try {
+                // Fetch all scans for this operator (last 1000)
+                const { data, error } = await supabaseClient
+                    .from('scans')
+                    .select('id, created_at, part_id, serial_number, station_id')
+                    .eq('operator_name', operator)
+                    .order('created_at', { ascending: false })
+                    .limit(1000);
+
+                if (error) throw error;
+
+                allScans = data || [];
+                updateDisplay();
+
+            } catch (e) {
+                console.error('Error loading scans:', e);
+                scansList.innerHTML = '<div class="empty-state">Error loading scans. Please try again.</div>';
+            }
+        }
+
+        // Update display based on current date range
+        function updateDisplay() {
+            const todayEST = getTodayEST();
+            const weekStartEST = getWeekStartEST();
+
+            // Filter scans based on date range
+            let filteredScans = allScans;
+            let dateLabel = 'All Time';
+
+            if (currentDateRange === 'today') {
+                filteredScans = allScans.filter(scan => {
+                    const scanDate = new Date(scan.created_at).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+                    return scanDate === todayEST;
+                });
+                dateLabel = 'Today';
+            } else if (currentDateRange === 'week') {
+                filteredScans = allScans.filter(scan => {
+                    const scanDate = new Date(scan.created_at).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+                    return scanDate >= weekStartEST;
+                });
+                dateLabel = 'This Week';
+            }
+
+            // Update stats
+            document.getElementById('todayCount').textContent = filteredScans.length;
+            document.getElementById('dateRangeLabel').textContent = dateLabel;
+
+            // Update last scan info
+            if (allScans.length > 0) {
+                const last = allScans[0]; // Most recent overall
+                document.getElementById('lastSerial').textContent = last.serial_number || '—';
+                document.getElementById('lastPart').textContent = last.part_id || '—';
+                document.getElementById('lastTime').textContent = getRelativeTime(last.created_at);
+            } else {
+                document.getElementById('lastSerial').textContent = '—';
+                document.getElementById('lastPart').textContent = '—';
+                document.getElementById('lastTime').textContent = '';
+            }
+
+            // Update scans title
+            document.getElementById('scansTitle').textContent = `Your Scans (${filteredScans.length})`;
+
+            // Render scans list
+            if (filteredScans.length === 0) {
+                scansList.innerHTML = `<div class="empty-state">No scans found for ${dateLabel.toLowerCase()}.</div>`;
+                return;
+            }
+
+            let html = '';
+            filteredScans.forEach(scan => {
+                const timeDisplay = currentDateRange === 'today'
+                    ? formatTime(scan.created_at)
+                    : `${formatDate(scan.created_at)} ${formatTime(scan.created_at)}`;
+
+                html += `
+                    <div class="scan-row">
+                        <div class="scan-time">${timeDisplay}</div>
+                        <div class="scan-info">
+                            <div class="scan-serial">${scan.serial_number || '-'}</div>
+                            <div class="scan-part">${scan.part_id || '-'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            scansList.innerHTML = html;
+        }
+
+        // Date filter buttons
+        document.querySelectorAll('.date-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDateRange = btn.dataset.range;
+                updateDisplay();
+            });
+        });
+
+        // Operator selection change
+        operatorSelect.addEventListener('change', () => {
+            loadScans();
+        });
+
+        // Initialize
+        async function init() {
+            await loadOperators();
+
+            // Auto-refresh every 30 seconds
+            refreshInterval = setInterval(() => {
+                if (operatorSelect.value) {
+                    loadScans();
+                }
+            }, 30000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

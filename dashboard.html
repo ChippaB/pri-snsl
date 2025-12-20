@@ -440,6 +440,55 @@
             font-size: 14px;
         }
 
+        /* Flagged Row Highlighting */
+        tr.flagged-unknown {
+            background: #fef3c7 !important;
+            border-left: 4px solid #f59e0b;
+        }
+
+        tr.flagged-unknown td:first-child {
+            padding-left: 12px;
+        }
+
+        tr.flagged-short {
+            background: #fee2e2 !important;
+            border-left: 4px solid #ef4444;
+        }
+
+        tr.flagged-short td:first-child {
+            padding-left: 12px;
+        }
+
+        .part-num.unknown {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .serial-num.short {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .flag-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+            text-transform: uppercase;
+        }
+
+        .flag-badge.unknown {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .flag-badge.short {
+            background: #ef4444;
+            color: white;
+        }
+
         .operator-badge {
             display: inline-block;
             padding: 2px 8px;
@@ -1565,11 +1614,27 @@
                 return;
             }
 
-            tableBody.innerHTML = filteredScans.map(scan => `
-                <tr>
-                    <td class="timestamp">${formatDateTime(scan.created_at)}</td>
-                    <td class="serial-num">${scan.serial_number || '-'}</td>
-                    <td class="part-num">${scan.part_id || '-'}</td>
+            tableBody.innerHTML = filteredScans.map(scan => {
+                // Determine flag classes
+                const isUnknown = scan.part_id === 'UNKNOWN' || !scan.part_id;
+                const isShort = scan.serial_number && scan.serial_number.length < 5;
+                let rowClass = '';
+                if (isShort) rowClass = 'flagged-short';
+                else if (isUnknown) rowClass = 'flagged-unknown';
+
+                const partClass = isUnknown ? 'part-num unknown' : 'part-num';
+                const serialClass = isShort ? 'serial-num short' : 'serial-num';
+
+                // Flag badges
+                let flagBadge = '';
+                if (isShort) flagBadge = '<span class="flag-badge short">⚠️ Short</span>';
+                else if (isUnknown) flagBadge = '<span class="flag-badge unknown">⚠️ Unknown</span>';
+
+                return `
+                <tr class="${rowClass}">
+                    <td class="timestamp">${formatDateTime(scan.created_at)}${flagBadge}</td>
+                    <td class="${serialClass}">${scan.serial_number || '-'}</td>
+                    <td class="${partClass}">${scan.part_id || '-'}</td>
                     <td><span class="operator-badge">${scan.operator_name || '-'}</span></td>
                     <td><span class="station-badge">${scan.station_id || '-'}</span></td>
                     <td class="comment" title="${scan.batch_comment || ''}">${scan.batch_comment || ''}</td>
@@ -1584,7 +1649,7 @@
                         <button class="action-btn delete" onclick="openDeleteModal(${scan.id})">🗑️</button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         // Escape HTML to prevent XSS
