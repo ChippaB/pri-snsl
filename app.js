@@ -2,6 +2,9 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.5.4: HIBC check digit stripped ONLY if 6+ trailing digits (5 digit min safety net for misconfigured barcodes)
+// v8.5.3: (superseded by v8.5.4)
+// v8.5.2: (superseded by v8.5.3)
 // v8.5.1: Scan field now locked until Part Number Map loads - prevents UNKNOWN entries from premature scanning
 // v8.5.0: Operators and Stations now managed via Google Sheet CONFIG tab - clients can add/remove without code updates
 // v8.4.3: Fixed edge case where serials without end caps had last digit incorrectly stripped - now uses trailing digit count (6+ = check digit, ≤5 = keep all)
@@ -762,19 +765,33 @@ function parsePN_SN(s) {
             if (sNum.startsWith('+')) sNum = sNum.substring(1);
         }
 
-        // Evidence-based check digit stripping:
-        // Only strip trailing character if it's a letter (A-Z) or known terminator symbol.
-        // If the last character is a digit, keep it (some barcodes omit check digit indicator).
-        // Known terminators: / $ + % . -
-        const lastChar = sNum.charAt(sNum.length - 1);
-        if (/[A-Z]/i.test(lastChar)) {
-            // Check digit is a letter (common HIBC pattern)
-            sNum = sNum.substring(0, sNum.length - 1);
-        } else if (/[\/$+%.\-]/.test(lastChar)) {
-            // Check digit is a known terminator symbol
-            sNum = sNum.substring(0, sNum.length - 1);
+        // HIBC Check Digit Stripping (v8.5.4):
+        // HIBC standard: Serial format is PART_PREFIX + 5-DIGIT-SERIAL + CHECK_DIGIT
+        // Examples:
+        //   760E2 + 10718 + 5 = 760E2107185 → strip last → 760E210718
+        //   757EN + 11203 + 6 = 757EN112036 → strip last → 757EN11203
+        //   TNN102 + 12238 + F = TNN10212238F → strip last → TNN10212238
+        //
+        // Rule: Strip the last character IF it would leave at least 5 trailing digits
+        // Safety: If barcode is misconfigured (no check digit), don't over-strip
+        if (sNum.length > 1) {
+            // Find the last letter to determine trailing digits after stripping
+            const lastLetterMatch = sNum.match(/[A-Z]/gi);
+            if (lastLetterMatch) {
+                const lastLetter = lastLetterMatch[lastLetterMatch.length - 1];
+                const lastLetterPos = sNum.lastIndexOf(lastLetter);
+                const currentTrailingDigits = sNum.substring(lastLetterPos + 1);
+
+                // Only strip if we'd still have 5+ digits after the last letter
+                if (currentTrailingDigits.length > 5) {
+                    sNum = sNum.substring(0, sNum.length - 1);
+                }
+                // If exactly 5 or fewer digits, assume no check digit - keep as-is
+            } else {
+                // No letters found (all numeric serial) - always strip last char
+                sNum = sNum.substring(0, sNum.length - 1);
+            }
         }
-        // If lastChar is a digit (0-9), do NOT strip it — treat as part of serial
 
         if (p.startsWith('446') && p.length > 4 && (p.includes('PUL') || p.endsWith('1') || p.endsWith('0'))) {
             p = p.substring(3, p.length - 1);
