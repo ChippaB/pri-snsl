@@ -469,6 +469,20 @@
             color: #991b1b;
         }
 
+        .serial-num.suspicious {
+            background: #faf5ff;
+            color: #7c3aed;
+        }
+
+        tr.flagged-suspicious {
+            background: #faf5ff !important;
+            border-left: 4px solid #a855f7;
+        }
+
+        tr.flagged-suspicious td:first-child {
+            padding-left: 12px;
+        }
+
         .flag-badge {
             display: inline-block;
             padding: 2px 6px;
@@ -486,6 +500,11 @@
 
         .flag-badge.short {
             background: #ef4444;
+            color: white;
+        }
+
+        .flag-badge.suspicious {
+            background: #a855f7;
             color: white;
         }
 
@@ -1618,17 +1637,26 @@
                 // Determine flag classes
                 const isUnknown = scan.part_id === 'UNKNOWN' || !scan.part_id;
                 const isShort = scan.serial_number && scan.serial_number.length < 5;
+                // Check for suspicious characters: * # @ ! ~ ` % ^ & ( ) = { } | [ ] < > ; : ' "
+                const suspiciousCharsPattern = /[*#@!~`%^&()={}|\[\]<>;:'"]/;
+                const isSuspicious = scan.serial_number && suspiciousCharsPattern.test(scan.serial_number);
+
                 let rowClass = '';
-                if (isShort) rowClass = 'flagged-short';
+                if (isSuspicious) rowClass = 'flagged-suspicious';
+                else if (isShort) rowClass = 'flagged-short';
                 else if (isUnknown) rowClass = 'flagged-unknown';
 
                 const partClass = isUnknown ? 'part-num unknown' : 'part-num';
-                const serialClass = isShort ? 'serial-num short' : 'serial-num';
+                let serialClass = 'serial-num';
+                if (isSuspicious) serialClass = 'serial-num suspicious';
+                else if (isShort) serialClass = 'serial-num short';
 
                 // Flag badges
                 let flagBadge = '';
-                if (isShort) flagBadge = '<span class="flag-badge short">⚠️ Short</span>';
+                if (isSuspicious) flagBadge = '<span class="flag-badge suspicious">⚠️ Suspicious</span>';
+                else if (isShort) flagBadge = '<span class="flag-badge short">⚠️ Short</span>';
                 else if (isUnknown) flagBadge = '<span class="flag-badge unknown">⚠️ Unknown</span>';
+
 
                 return `
                 <tr class="${rowClass}">

@@ -12,7 +12,7 @@
 CREATE TABLE IF NOT EXISTS flagged_scans (
     id SERIAL PRIMARY KEY,
     scan_id INTEGER REFERENCES scans(id) ON DELETE CASCADE,
-    flag_type TEXT NOT NULL,       -- 'UNKNOWN_PART', 'SHORT_SERIAL', 'SHORT_RAW_SCAN'
+    flag_type TEXT NOT NULL,       -- 'UNKNOWN_PART', 'SHORT_SERIAL', 'SHORT_RAW_SCAN', 'SUSPICIOUS_CHARS'
     flag_details TEXT,             -- Human-readable description
     created_at TIMESTAMPTZ DEFAULT NOW(),
     resolved BOOLEAN DEFAULT FALSE,
@@ -71,6 +71,19 @@ BEGIN
         INSERT INTO flagged_scans (scan_id, flag_type, flag_details)
         VALUES (NEW.id, 'SHORT_RAW_SCAN', 
             'Raw scan is only ' || LENGTH(NEW.raw_scan) || ' chars');
+    END IF;
+
+    -- Flag 4: Suspicious characters in serial number or raw scan
+    -- Detects scanner errors that produce corrupt characters like * # @ etc.
+    IF NEW.serial_number IS NOT NULL AND NEW.serial_number ~ '[*#@!~`%^&()={}|\[\]<>;:''"]' THEN
+        INSERT INTO flagged_scans (scan_id, flag_type, flag_details)
+        VALUES (NEW.id, 'SUSPICIOUS_CHARS', 
+            'Serial "' || NEW.serial_number || '" contains unusual characters');
+    ELSIF NEW.raw_scan IS NOT NULL AND NEW.raw_scan ~ '\*[0-9]' THEN
+        -- Also flag if raw_scan has asterisk followed by digit (common scanner error pattern)
+        INSERT INTO flagged_scans (scan_id, flag_type, flag_details)
+        VALUES (NEW.id, 'SUSPICIOUS_CHARS', 
+            'Raw scan contains suspicious character pattern');
     END IF;
 
     RETURN NEW;
