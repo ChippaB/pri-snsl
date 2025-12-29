@@ -2,7 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
-// v8.5.4: HIBC check digit stripped ONLY if 6+ trailing digits (5 digit min safety net for misconfigured barcodes)
+// v8.6.0: Client-side barcode validation - rejects malformed scans BEFORE they reach the database (fail-fast)\n// v8.5.4: HIBC check digit stripped ONLY if 6+ trailing digits (5 digit min safety net for misconfigured barcodes)
 // v8.5.3: (superseded by v8.5.4)
 // v8.5.2: (superseded by v8.5.3)
 // v8.5.1: Scan field now locked until Part Number Map loads - prevents UNKNOWN entries from premature scanning
@@ -34,6 +34,23 @@ const SHARED_SECRET = 'qk92X3vE7LrT8c59H1zUM4Bn0ySDFwGp';
 let PART_NUMBER_MAP = {};
 let OPERATORS_LIST = [];
 let STATIONS_LIST = [];
+
+// ===== BARCODE VALIDATION CONFIG =====
+// Client-side validation to reject malformed scans BEFORE they reach the database
+const BARCODE_VALIDATION = {
+    MIN_RAW_LENGTH: 20,      // Minimum raw scan length (matches server-side flag)
+    FORMATS: {
+        GS1_128: {
+            minLength: 28,    // 16-char prefix + 12+ char serial
+            pattern: /^01[0-9]{14}/  // Starts with 01 + 14 digits
+        },
+        HIBC: {
+            minLength: 12,    // Minimum HIBC format
+            pattern: /\/\$\+/  // Must contain /$+ delimiter
+        }
+    },
+    SUSPICIOUS_CHARS: /[*#@!~`%^&()={}|[\]<>;:'"]/
+};
 
 // ===== OFFLINE QUEUE (IndexedDB) =====
 // Stores scans locally when offline, syncs when connectivity returns
@@ -551,6 +568,35 @@ function playSoundError() {
     setTimeout(() => { document.body.style.backgroundColor = ''; }, 300);
 }
 
+/**
+ * Show validation rejection error with enhanced feedback
+ * Used for client-side barcode validation failures
+ */
+function showValidationError(reason) {
+    // Visual: Extended red flash for emphasis
+    document.body.style.transition = 'background-color 0.5s';
+    document.body.style.backgroundColor = '#ef4444';
+
+    // Audio: Error beep
+    playSoundError();
+
+    // Haptic: Error vibration pattern if available (SOS pattern)
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100, 50, 100]);
+    }
+
+    // UI: Show error with specific message
+    show(`❌ INVALID SCAN: ${reason}`, 'err');
+
+    // Extended red background for emphasis
+    setTimeout(() => {
+        document.body.style.backgroundColor = '';
+    }, 800);
+
+    // Log for analytics/debugging
+    console.warn(`[VALIDATION REJECTED] ${reason}`);
+}
+
 function show(msg, cls) {
     statusBox.textContent = msg;
     statusBox.className = 'status show ' + cls;
@@ -642,6 +688,65 @@ function cleanSerialNumber(rawSerial) {
         // Fallback: strip trailing non-digits
         return cleaned.replace(/[^0-9]+$/, '').trim();
     }
+}
+
+/**
+ * Validates raw barcode data BEFORE parsing.
+ * This is the fail-fast gate that prevents malformed scans from reaching the database.
+ * @param {string} rawScan - The raw barcode string from the scanner
+ * @returns {{ valid: boolean, reason?: string }} - Validation result
+ */
+function validateRawBarcode(rawScan) {
+    if (!rawScan || typeof rawScan !== 'string') {
+        return { valid: false, reason: 'Empty scan' };
+    }
+
+    const cleaned = rawScan.trim().replace(/[\x00-\x1F\x7F]/g, '');
+
+    // Check minimum length
+    if (cleaned.length < BARCODE_VALIDATION.MIN_RAW_LENGTH) {
+        return {
+            valid: false,
+            reason: `Too short: ${cleaned.length} chars (need ${BARCODE_VALIDATION.MIN_RAW_LENGTH}+)`
+        };
+    }
+
+    // Check for suspicious characters (scanner errors)
+    if (BARCODE_VALIDATION.SUSPICIOUS_CHARS.test(cleaned)) {
+        return {
+            valid: false,
+            reason: 'Contains invalid characters - possible scanner error'
+        };
+    }
+
+    // Detect format
+    const isGS1 = cleaned.startsWith('01');
+    const isHIBC = cleaned.includes('/$+');
+
+    if (!isGS1 && !isHIBC) {
+        // Could be a custom format serial (MGC, R756, etc.) - allow if long enough
+        if (cleaned.length >= BARCODE_VALIDATION.MIN_RAW_LENGTH) {
+            return { valid: true };  // Custom format, passes length check
+        }
+        return { valid: false, reason: 'Unknown barcode format' };
+    }
+
+    // Format-specific validation
+    if (isGS1 && cleaned.length < BARCODE_VALIDATION.FORMATS.GS1_128.minLength) {
+        return {
+            valid: false,
+            reason: `GS1-128 too short: ${cleaned.length} chars (need ${BARCODE_VALIDATION.FORMATS.GS1_128.minLength}+)`
+        };
+    }
+
+    if (isHIBC && cleaned.length < BARCODE_VALIDATION.FORMATS.HIBC.minLength) {
+        return {
+            valid: false,
+            reason: `HIBC too short: ${cleaned.length} chars (need ${BARCODE_VALIDATION.FORMATS.HIBC.minLength}+)`
+        };
+    }
+
+    return { valid: true };
 }
 
 /**
@@ -1094,6 +1199,17 @@ scanInput.addEventListener('keydown', async (ev) => {
     // Sanitize
     raw = raw.replace(/[\x00-\x1F\x7F]/g, '');
     if (raw.startsWith("'")) raw = raw.substring(1);
+
+    // ===== VALIDATION GATE (v8.6.0) =====
+    // Fail-fast: Reject malformed barcodes BEFORE they reach the database
+    const validation = validateRawBarcode(raw);
+    if (!validation.valid) {
+        showValidationError(validation.reason);
+        scanInput.value = '';  // Clear for immediate rescan
+        scanInput.focus();
+        return;  // FAIL FAST - never reaches database
+    }
+    // ===== END VALIDATION GATE =====
 
     // 1. Try GS1 / HIBC Parsing
     let parsed = parsePN_SN(raw);

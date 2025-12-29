@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seescan-supa1.2.1-offline';
+const CACHE_NAME = 'seescan-v8.6.0-offline';
 const urlsToCache = [
     './',
     './index.html',
@@ -7,6 +7,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+    self.skipWaiting();  // Force immediate activation - no waiting for tabs to close
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
@@ -39,6 +40,9 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
+        }).then(() => {
+            // Take control of all clients immediately
+            return self.clients.claim();
         })
     );
 });
