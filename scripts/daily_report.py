@@ -222,32 +222,44 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         cell.alignment = Alignment(horizontal='center')
         cell.border = border
     
-    # Data rows
-    row = 2
+    # Data rows - Collect and Sort
+    table_rows = []
     part_totals = defaultdict(lambda: {'scans': 0, 'pieces': 0})
     
-    for operator in sorted(grouped_data.keys()):
-        for station in sorted(grouped_data[operator].keys()):
-            for part in sorted(grouped_data[operator][station].keys()):
+    for operator in grouped_data:
+        for station in grouped_data[operator]:
+            for part in grouped_data[operator][station]:
                 serials = grouped_data[operator][station][part]
                 scan_count = len(serials)
                 pieces = scan_count * PIECES_PER_BOX
                 serial_ranges = format_serial_ranges(serials)
                 
+                table_rows.append({
+                    'operator': operator,
+                    'station': station,
+                    'part': part,
+                    'scan_count': scan_count,
+                    'pieces': pieces,
+                    'serial_ranges': serial_ranges
+                })
+                
                 # Track totals
                 part_totals[part]['scans'] += scan_count
                 part_totals[part]['pieces'] += pieces
-                
-                # Write row
-                ws.cell(row=row, column=1, value=operator).border = border
-                ws.cell(row=row, column=2, value=station).border = border
-                ws.cell(row=row, column=3, value=part).border = border
-                ws.cell(row=row, column=4, value='').border = border  # Context column (empty)
-                ws.cell(row=row, column=5, value=scan_count).border = border
-                ws.cell(row=row, column=6, value=pieces).border = border
-                ws.cell(row=row, column=7, value=serial_ranges).border = border
-                
-                row += 1
+
+    # Sort by Part Number (Col C) -> Operator -> Station
+    table_rows.sort(key=lambda x: (x['part'], x['operator'], x['station']))
+    
+    row = 2
+    for data in table_rows:
+        ws.cell(row=row, column=1, value=data['operator']).border = border
+        ws.cell(row=row, column=2, value=data['station']).border = border
+        ws.cell(row=row, column=3, value=data['part']).border = border
+        ws.cell(row=row, column=4, value='').border = border  # Context column (empty)
+        ws.cell(row=row, column=5, value=data['scan_count']).border = border
+        ws.cell(row=row, column=6, value=data['pieces']).border = border
+        ws.cell(row=row, column=7, value=data['serial_ranges']).border = border
+        row += 1
     
     # Blank rows before Grand Total
     row += 2
@@ -256,24 +268,28 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     ws.cell(row=row, column=1, value="Grand Total by Part Number").font = Font(bold=True, size=12)
     row += 1
     
-    # Grand Total column headers
-    gt_headers = ['Part Number', 'Total Scans (Boxes)', 'Total Pieces']
+    # Grand Total column headers (Part Number)
+    gt_headers = ['Part Number', 'Total Scans (Boxes)', 'Total Pieces', 'QB', 'SS']
     for col, header in enumerate(gt_headers, 1):
         cell = ws.cell(row=row, column=col, value=header)
-        cell.font = Font(bold=True)
-        cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
         cell.border = border
     row += 1
     
-    # Grand Total data
-    gt_start_row = row  # Remember starting row for operator table
+    # Grand Total data (Part Number)
     for part in sorted(part_totals.keys()):
         ws.cell(row=row, column=1, value=part).border = border
         ws.cell(row=row, column=2, value=part_totals[part]['scans']).border = border
         ws.cell(row=row, column=3, value=part_totals[part]['pieces']).border = border
+        ws.cell(row=row, column=4, value='').border = border # QB
+        ws.cell(row=row, column=5, value='').border = border # SS
         row += 1
     
-    # ===== GRAND TOTAL BY OPERATOR (positioned to the right) =====
+    # ===== GRAND TOTAL BY OPERATOR (positioned below Part Number table) =====
+    row += 2
+    
     # Calculate operator totals
     operator_totals = {}
     for scan in scans:
@@ -283,29 +299,29 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         operator_totals[op]['scans'] += 1
         operator_totals[op]['pieces'] += PIECES_PER_BOX
     
-    # Operator totals header (column E)
-    op_row = gt_start_row - 2  # Same row as "Grand Total by Part Number" header
-    ws.cell(row=op_row, column=5, value="Grand Total by Operator").font = Font(bold=True, size=12)
-    op_row += 1
+    # Operator totals header
+    ws.cell(row=row, column=1, value="Grand Total by Operator").font = Font(bold=True, size=12)
+    row += 1
     
     # Operator totals column headers
     op_headers = ['Operator', 'Total Scans (Boxes)', 'Total Pieces']
-    for col, header in enumerate(op_headers, 5):
-        cell = ws.cell(row=op_row, column=col, value=header)
-        cell.font = Font(bold=True)
-        cell.fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    for col, header in enumerate(op_headers, 1):
+        cell = ws.cell(row=row, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
         cell.border = border
-    op_row += 1
+    row += 1
     
     # Operator totals data
     for op in sorted(operator_totals.keys()):
-        ws.cell(row=op_row, column=5, value=op).border = border
-        ws.cell(row=op_row, column=6, value=operator_totals[op]['scans']).border = border
-        ws.cell(row=op_row, column=7, value=operator_totals[op]['pieces']).border = border
-        op_row += 1
+        ws.cell(row=row, column=1, value=op).border = border
+        ws.cell(row=row, column=2, value=operator_totals[op]['scans']).border = border
+        ws.cell(row=row, column=3, value=operator_totals[op]['pieces']).border = border
+        row += 1
     
     # Auto-adjust column widths for main sheet
-    for col in range(1, 8):
+    for col in range(1, 10):
         max_length = 0
         column_letter = get_column_letter(col)
         for cell in ws[column_letter]:
@@ -436,6 +452,56 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         ws_raw.column_dimensions[get_column_letter(col)].width = width
     
     print(f"[OK] Added Raw Data sheet with {len(scans)} records")
+    
+    # ===== CREATE PART SUMMARY SHEET (Format requested: Part, Total Pcs, Ranges) =====
+    ws_part_summary = wb.create_sheet(title="Part Summary")
+    
+    # Calculate global part totals first
+    global_part_data = defaultdict(lambda: {'pieces': 0, 'serials': []})
+    
+    for scan in scans:
+        part = scan.get('part_id') or 'Unknown'
+        serial = scan.get('serial_number') or ''
+        global_part_data[part]['pieces'] += PIECES_PER_BOX
+        if serial:
+            global_part_data[part]['serials'].append(serial)
+    
+    ps_row = 1
+    # Check if we have data
+    if not global_part_data:
+        ws_part_summary.cell(row=1, column=1, value="No scans found.")
+    else:
+        for part in sorted(global_part_data.keys()):
+            data = global_part_data[part]
+            
+            # Format:
+            # <Part Number>
+            # TOTAL PIECES: <Count>
+            # SERIAL SEQUENCES: <Ranges>
+            
+            # Part Part Number
+            cell_part = ws_part_summary.cell(row=ps_row, column=1, value=part)
+            cell_part.font = Font(bold=True, size=12)
+            ps_row += 1
+            
+            # Total Pieces
+            ws_part_summary.cell(row=ps_row, column=1, value=f"TOTAL PIECES: {data['pieces']}")
+            ps_row += 1
+            
+            # Serial Sequences
+            ranges = format_serial_ranges(data['serials'])
+            # Wrap text for long sequences
+            cell_seq = ws_part_summary.cell(row=ps_row, column=1, value=f"SERIAL SEQUENCES: {ranges}")
+            cell_seq.alignment = Alignment(wrap_text=True)
+            ps_row += 1
+            
+            # Empty lines between parts
+            ps_row += 2
+            
+    # Set column width
+    ws_part_summary.column_dimensions['A'].width = 100
+    
+    print(f"[OK] Added Part Summary sheet")
     
     # ===== CREATE PER-OPERATOR SHEETS =====
     # Get unique operators from this day's scans
@@ -620,16 +686,23 @@ def backup_to_google_sheets(scans: list, report_date: datetime):
 
 def main():
     """Main entry point"""
-    # Determine target date
-    if len(sys.argv) > 1:
-        if sys.argv[1] == '--test':
-            test_mode = True
-            target_date = datetime.now() - timedelta(days=1)
-        else:
-            test_mode = False
-            target_date = datetime.strptime(sys.argv[1], '%Y-%m-%d')
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Daily Build Report Generator')
+    parser.add_argument('date', nargs='?', help='Report date (YYYY-MM-DD)')
+    parser.add_argument('--test', action='store_true', help='Test mode (no email)')
+    args = parser.parse_args()
+    
+    test_mode = args.test
+    if args.date:
+        try:
+            target_date = datetime.strptime(args.date, '%Y-%m-%d')
+        except ValueError:
+            # Handle case where date might be mistakenly parsed if flags are mixed order in some shells
+            # But argparse handles pos args well.
+             print(f"[ERROR] Invalid date format: {args.date}. Use YYYY-MM-DD")
+             sys.exit(1)
     else:
-        test_mode = False
         target_date = datetime.now() - timedelta(days=1)
     
     print(f"[INFO] Generating Build Report for {target_date.strftime('%Y-%m-%d')}")
