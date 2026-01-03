@@ -175,6 +175,77 @@ def format_range(prefix: str, start: int, end: int) -> str:
     else:
         return f"{prefix}{start}-{end}"
 
+def extract_serial_header(serial: str) -> str:
+    """
+    Extract serial header prefix (everything before last 5 digits).
+    'MGCK173156' -> 'MGCK1' (keeps 'MGCK1', drops '73156')
+    'MGC2C12345' -> 'MGC2C'
+    Handles edge cases like ranges stored as single values.
+    """
+    if not serial:
+        return 'UNKNOWN'
+    
+    # If serial contains a hyphen (range stored as single value), use first part
+    target = serial.split('-')[0]
+    
+    if len(target) <= 5:
+        return target or 'UNKNOWN'
+    
+    # Take everything except last 5 characters
+    return target[:-5]
+
+
+def format_serial_numbers_only(serials: list) -> str:
+    """
+    Format serial numbers showing only the trailing numeric portions as ranges.
+    'MGCK173156', 'MGCK173157', 'MGCK173158' -> '73156-73158'
+    """
+    if not serials:
+        return ""
+    
+    # Extract just the last 5 digits from each serial
+    numbers = []
+    for serial in sorted(set(serials)):
+        if serial and len(serial) > 5:
+            try:
+                num = int(serial[-5:])
+                numbers.append(num)
+            except ValueError:
+                numbers.append(serial[-5:])  # Keep as string if not numeric
+        else:
+            numbers.append(serial)
+    
+    if not numbers:
+        return ""
+    
+    # If all are integers, format as ranges
+    if all(isinstance(n, int) for n in numbers):
+        numbers = sorted(numbers)
+        ranges = []
+        start = numbers[0]
+        end = numbers[0]
+        
+        for num in numbers[1:]:
+            if num == end + 1:
+                end = num
+            else:
+                if start == end:
+                    ranges.append(str(start))
+                else:
+                    ranges.append(f"{start}-{end}")
+                start = num
+                end = num
+        
+        # Don't forget last range
+        if start == end:
+            ranges.append(str(start))
+        else:
+            ranges.append(f"{start}-{end}")
+        
+        return " / ".join(ranges)
+    else:
+        return " / ".join(str(n) for n in numbers)
+
 
 def group_scans(scans: list) -> dict:
     """
@@ -201,7 +272,7 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     """
     wb = Workbook()
     ws = wb.active
-    ws.title = f"Build Report {report_date.strftime('%m-%d-%Y')}"
+    ws.title = f"Build Summary {report_date.strftime('%m-%d-%Y')}"
     
     # Styles
     header_font = Font(bold=True, color="FFFFFF")
@@ -212,19 +283,15 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         top=Side(style='thin'),
         bottom=Side(style='thin')
     )
+    center_align = Alignment(horizontal='center', vertical='center')
+    wrap_align = Alignment(horizontal='left', vertical='center', wrap_text=True)
+    alt_row_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")  # Light gray
+    subtotal_fill = PatternFill(start_color="D9E8FB", end_color="D9E8FB", fill_type="solid")  # Light blue
+    subtotal_font = Font(bold=True)
     
-    # Headers
-    headers = ['Operator', 'Station', 'Part Number', 'Context', 'Total Scans (Boxes)', 'Total Pieces', 'Serial Numbers Logged']
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal='center')
-        cell.border = border
-    
-    # Data rows - Collect and Sort
+    # Collect data for tables
     table_rows = []
-    part_totals = defaultdict(lambda: {'scans': 0, 'pieces': 0})
+    part_header_totals = defaultdict(lambda: defaultdict(lambda: {'scans': 0, 'pieces': 0, 'serials': []}))
     
     for operator in grouped_data:
         for station in grouped_data[operator]:
@@ -243,51 +310,183 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
                     'serial_ranges': serial_ranges
                 })
                 
-                # Track totals
-                part_totals[part]['scans'] += scan_count
-                part_totals[part]['pieces'] += pieces
-
-    # Sort by Part Number (Col C) -> Operator -> Station
+                # Track totals by part + serial header
+                for serial in serials:
+                    header = extract_serial_header(serial)
+                    part_header_totals[part][header]['scans'] += 1
+                    part_header_totals[part][header]['pieces'] += PIECES_PER_BOX
+                    part_header_totals[part][header]['serials'].append(serial)
+    
+    # Sort by Part Number -> Operator -> Station
     table_rows.sort(key=lambda x: (x['part'], x['operator'], x['station']))
     
+    # ===== MAIN SHEET: Build Summary by Part & Serial Header =====
+    # Section Header
+    ws.cell(row=1, column=1, value="Build Summary by Part & Serial Header").font = Font(bold=True, size=12)
+    
+    # Column headers
+    gt_headers = ['Part Number', 'Total Scans (Boxes)', 'Total Pieces', 'Serial Header', 'Serial Numbers Logged', 'QB', 'SS']
     row = 2
-    for data in table_rows:
-        ws.cell(row=row, column=1, value=data['operator']).border = border
-        ws.cell(row=row, column=2, value=data['station']).border = border
-        ws.cell(row=row, column=3, value=data['part']).border = border
-        ws.cell(row=row, column=4, value='').border = border  # Context column (empty)
-        ws.cell(row=row, column=5, value=data['scan_count']).border = border
-        ws.cell(row=row, column=6, value=data['pieces']).border = border
-        ws.cell(row=row, column=7, value=data['serial_ranges']).border = border
-        row += 1
-    
-    # Blank rows before Grand Total
-    row += 2
-    
-    # Grand Total Header
-    ws.cell(row=row, column=1, value="Grand Total by Part Number").font = Font(bold=True, size=12)
-    row += 1
-    
-    # Grand Total column headers (Part Number)
-    gt_headers = ['Part Number', 'Total Scans (Boxes)', 'Total Pieces', 'QB', 'SS']
     for col, header in enumerate(gt_headers, 1):
         cell = ws.cell(row=row, column=col, value=header)
         cell.font = header_font
         cell.fill = header_fill
-        cell.alignment = Alignment(horizontal='center')
+        cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = border
     row += 1
     
-    # Grand Total data (Part Number)
-    for part in sorted(part_totals.keys()):
-        ws.cell(row=row, column=1, value=part).border = border
-        ws.cell(row=row, column=2, value=part_totals[part]['scans']).border = border
-        ws.cell(row=row, column=3, value=part_totals[part]['pieces']).border = border
-        ws.cell(row=row, column=4, value='').border = border # QB
-        ws.cell(row=row, column=5, value='').border = border # SS
-        row += 1
+    # Data rows with subtotals per part
+    sorted_parts = sorted(part_header_totals.keys())
+    row_counter = 0
     
-    # ===== GRAND TOTAL BY OPERATOR (positioned below Part Number table) =====
+    for part in sorted_parts:
+        part_total_scans = 0
+        part_total_pieces = 0
+        headers_for_part = sorted(part_header_totals[part].keys())
+        
+        for header in headers_for_part:
+            totals = part_header_totals[part][header]
+            serial_ranges = format_serial_ranges(sorted(totals['serials']))
+            
+            row_fill = alt_row_fill if row_counter % 2 == 1 else None
+            
+            cell_part = ws.cell(row=row, column=1, value=part)
+            cell_part.border = border
+            cell_part.alignment = center_align
+            if row_fill:
+                cell_part.fill = row_fill
+            
+            cell_scans = ws.cell(row=row, column=2, value=totals['scans'])
+            cell_scans.border = border
+            cell_scans.alignment = center_align
+            if row_fill:
+                cell_scans.fill = row_fill
+            
+            cell_pieces = ws.cell(row=row, column=3, value=totals['pieces'])
+            cell_pieces.border = border
+            cell_pieces.alignment = center_align
+            if row_fill:
+                cell_pieces.fill = row_fill
+            
+            cell_header = ws.cell(row=row, column=4, value=header)
+            cell_header.border = border
+            cell_header.alignment = center_align
+            if row_fill:
+                cell_header.fill = row_fill
+            
+            cell_serial = ws.cell(row=row, column=5, value=serial_ranges)
+            cell_serial.border = border
+            cell_serial.alignment = wrap_align
+            if row_fill:
+                cell_serial.fill = row_fill
+            
+            cell_qb = ws.cell(row=row, column=6, value='')
+            cell_qb.border = border
+            cell_qb.alignment = center_align
+            if row_fill:
+                cell_qb.fill = row_fill
+            
+            cell_ss = ws.cell(row=row, column=7, value='')
+            cell_ss.border = border
+            cell_ss.alignment = center_align
+            if row_fill:
+                cell_ss.fill = row_fill
+            
+            part_total_scans += totals['scans']
+            part_total_pieces += totals['pieces']
+            
+            row += 1
+            row_counter += 1
+        
+        # Subtotal row (only if more than one serial header type)
+        if len(headers_for_part) > 1:
+            cell_sub_part = ws.cell(row=row, column=1, value=f"{part} SUBTOTAL")
+            cell_sub_part.border = border
+            cell_sub_part.alignment = center_align
+            cell_sub_part.fill = subtotal_fill
+            cell_sub_part.font = subtotal_font
+            
+            cell_sub_scans = ws.cell(row=row, column=2, value=part_total_scans)
+            cell_sub_scans.border = border
+            cell_sub_scans.alignment = center_align
+            cell_sub_scans.fill = subtotal_fill
+            cell_sub_scans.font = subtotal_font
+            
+            cell_sub_pieces = ws.cell(row=row, column=3, value=part_total_pieces)
+            cell_sub_pieces.border = border
+            cell_sub_pieces.alignment = center_align
+            cell_sub_pieces.fill = subtotal_fill
+            cell_sub_pieces.font = subtotal_font
+            
+            for col in range(4, 8):
+                cell = ws.cell(row=row, column=col, value='')
+                cell.border = border
+                cell.fill = subtotal_fill
+            
+            row += 1
+            row_counter = 0
+    
+    # ===== OPERATOR BREAKDOWN TABLE (on main sheet, below Build Summary) =====
+    row += 2
+    
+    # Operator breakdown header
+    ws.cell(row=row, column=1, value="Operator Breakdown").font = Font(bold=True, size=12)
+    row += 1
+    
+    # Column headers for operator breakdown
+    op_breakdown_headers = ['Operator', 'Station', 'Part Number', 'Total Pieces', 'Serial Numbers Logged', 'Context']
+    for col, header in enumerate(op_breakdown_headers, 1):
+        cell = ws.cell(row=row, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = border
+    row += 1
+    
+    op_row_idx = 0
+    for data in table_rows:
+        row_fill = alt_row_fill if op_row_idx % 2 == 1 else None
+        
+        cell = ws.cell(row=row, column=1, value=data['operator'])
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        cell = ws.cell(row=row, column=2, value=data['station'])
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        cell = ws.cell(row=row, column=3, value=data['part'])
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        cell = ws.cell(row=row, column=4, value=data['pieces'])
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        cell_serial = ws.cell(row=row, column=5, value=data['serial_ranges'])
+        cell_serial.border = border
+        cell_serial.alignment = wrap_align
+        if row_fill:
+            cell_serial.fill = row_fill
+        
+        cell = ws.cell(row=row, column=6, value='')
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        row += 1
+        op_row_idx += 1
+    
+    # ===== GRAND TOTAL BY OPERATOR (on main sheet, below Operator Breakdown) =====
     row += 2
     
     # Calculate operator totals
@@ -304,8 +503,8 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     row += 1
     
     # Operator totals column headers
-    op_headers = ['Operator', 'Total Scans (Boxes)', 'Total Pieces']
-    for col, header in enumerate(op_headers, 1):
+    op_tot_headers = ['Operator', 'Total Scans (Boxes)', 'Total Pieces']
+    for col, header in enumerate(op_tot_headers, 1):
         cell = ws.cell(row=row, column=col, value=header)
         cell.font = header_font
         cell.fill = header_fill
@@ -313,27 +512,55 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         cell.border = border
     row += 1
     
-    # Operator totals data
+    # Operator totals data with alternating shading
+    op_tot_row_idx = 0
     for op in sorted(operator_totals.keys()):
-        ws.cell(row=row, column=1, value=op).border = border
-        ws.cell(row=row, column=2, value=operator_totals[op]['scans']).border = border
-        ws.cell(row=row, column=3, value=operator_totals[op]['pieces']).border = border
+        row_fill = alt_row_fill if op_tot_row_idx % 2 == 1 else None
+        
+        cell = ws.cell(row=row, column=1, value=op)
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        cell = ws.cell(row=row, column=2, value=operator_totals[op]['scans'])
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
+        cell = ws.cell(row=row, column=3, value=operator_totals[op]['pieces'])
+        cell.border = border
+        cell.alignment = center_align
+        if row_fill:
+            cell.fill = row_fill
+        
         row += 1
+        op_tot_row_idx += 1
+
+    # Auto-adjust column widths for main sheet with max cap
+    max_widths = {'A': 24, 'B': 18, 'C': 14, 'D': 14, 'E': 60, 'F': 10, 'G': 8}
+    for col_letter, max_width in max_widths.items():
+        content_width = 10
+        for cell in ws[col_letter]:
+            if cell.value:
+                cell_len = len(str(cell.value))
+                if cell_len > content_width:
+                    content_width = cell_len
+        ws.column_dimensions[col_letter].width = min(content_width + 2, max_width)
     
-    # Auto-adjust column widths for main sheet
-    for col in range(1, 10):
-        max_length = 0
-        column_letter = get_column_letter(col)
-        for cell in ws[column_letter]:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = min(max_length + 2, 50)
-        ws.column_dimensions[column_letter].width = adjusted_width
-    
+    # Print settings
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.page_margins.left = 0.5
+    ws.page_margins.right = 0.5
+    ws.page_margins.top = 0.75
+    ws.page_margins.bottom = 0.75
+
     # ===== CREATE SUMMARY SHEET =====
+
     ws_summary = wb.create_sheet(title="Summary")
     
     # Title
