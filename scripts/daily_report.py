@@ -872,23 +872,140 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     temp_path = tempfile.mktemp(suffix='.xlsx')
     wb.save(temp_path)
     print(f"[OK] Generated Excel report: {temp_path}")
-    
+
     return temp_path
 
 
-def send_email(excel_path: str, report_date: datetime, scan_count: int):
-    """Send email with Excel attachment"""
+def generate_qb_import_file(scans: list, report_date: datetime) -> str:
+    """
+    Generate QuickBooks/SaasAnt import file for Build Assembly items.
+
+    Format:
+    - DATE (MM/DD/YYYY) - The actual date of barcode scans (prior day)
+    - S.No - Auto-incrementing row number
+    - Inventory Assembly Item - Part number with transformations (MGC variants, PFR prefix)
+    - Memo - Blank
+    - Quantity to Build - Total pieces (scans × PIECES_PER_BOX)
+    - Mark Pending if Required - FALSE
+
+    Groups by Part Number + Serial Header to separate variants (e.g., 536713-001S vs 536713-001C)
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Build Assembly"
+
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    center_align = Alignment(horizontal='center', vertical='center')
+
+    # Headers
+    headers = ['DATE', 'S.No', 'Inventory Assembly Item', 'Memo', 'Quantity to Build', 'Mark Pending if Required']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+        cell.border = border
+
+    # Group scans by Part Number (with transformations applied)
+    # We need to group by transformed part number to separate variants
+    part_totals = defaultdict(lambda: {'pieces': 0, 'serials': []})
+
+    for scan in scans:
+        part = scan.get('part_id') or 'Unknown'
+        serial = scan.get('serial_number') or ''
+
+        # Apply transformations to get the display part number
+        display_part = apply_part_number_variant(part, [serial] if serial else [])
+
+        part_totals[display_part]['pieces'] += PIECES_PER_BOX
+        if serial:
+            part_totals[display_part]['serials'].append(serial)
+
+    # Format date as MM/DD/YYYY
+    date_str = report_date.strftime('%m/%d/%Y')
+
+    # Populate data rows
+    row = 2
+    s_no = 1
+
+    for part in sorted(part_totals.keys()):
+        data = part_totals[part]
+
+        # Format serial numbers as ranges (same as Build Report)
+        serial_ranges = format_serial_ranges(sorted(data['serials']))
+
+        # DATE
+        cell = ws.cell(row=row, column=1, value=date_str)
+        cell.border = border
+        cell.alignment = center_align
+
+        # S.No
+        cell = ws.cell(row=row, column=2, value=s_no)
+        cell.border = border
+        cell.alignment = center_align
+
+        # Inventory Assembly Item (Part Number with transformations)
+        cell = ws.cell(row=row, column=3, value=part)
+        cell.border = border
+        cell.alignment = center_align
+
+        # Memo (serial number ranges - client can delete if not needed)
+        cell = ws.cell(row=row, column=4, value=serial_ranges)
+        cell.border = border
+        cell.alignment = Alignment(horizontal='left', vertical='center', wrap_text=True)
+
+        # Quantity to Build
+        cell = ws.cell(row=row, column=5, value=data['pieces'])
+        cell.border = border
+        cell.alignment = center_align
+
+        # Mark Pending if Required
+        cell = ws.cell(row=row, column=6, value='FALSE')
+        cell.border = border
+        cell.alignment = center_align
+
+        row += 1
+        s_no += 1
+
+    # Auto-adjust column widths
+    ws.column_dimensions['A'].width = 12  # DATE
+    ws.column_dimensions['B'].width = 8   # S.No
+    ws.column_dimensions['C'].width = 30  # Inventory Assembly Item
+    ws.column_dimensions['D'].width = 60  # Memo (serial number ranges)
+    ws.column_dimensions['E'].width = 18  # Quantity to Build
+    ws.column_dimensions['F'].width = 25  # Mark Pending if Required
+
+    # Save to temp file
+    temp_path = tempfile.mktemp(suffix='.xlsx')
+    wb.save(temp_path)
+    print(f"[OK] Generated QuickBooks import file: {temp_path}")
+    print(f"   - {s_no - 1} part numbers")
+    print(f"   - Date: {date_str}")
+
+    return temp_path
+
+
+def send_email(excel_path: str, qb_import_path: str, report_date: datetime, scan_count: int):
+    """Send email with Excel attachments (detailed report + QuickBooks import file)"""
     recipients = [r.strip() for r in REPORT_RECIPIENTS.split(',')]
-    
+
     if not SMTP_PASSWORD:
         print("[WARN] SMTP_PASSWORD not set, skipping email send")
         return
-    
+
     msg = MIMEMultipart()
     msg['From'] = SMTP_EMAIL
     msg['To'] = ', '.join(recipients)
     msg['Subject'] = f"Daily Build Report - {report_date.strftime('%B %d, %Y')}"
-    
+
     # Email body
     body = f"""
 Good morning,
@@ -899,14 +1016,18 @@ Summary:
 - Total Scans: {scan_count}
 - Total Pieces: {scan_count * PIECES_PER_BOX:,}
 
+Attachments:
+1. Build_Report_{report_date.strftime('%m-%d-%Y')}.xlsx - Detailed daily report with all scan data
+2. QB_Build_Assembly_{report_date.strftime('%m-%d-%Y')}.xlsx - QuickBooks import file (ready for SaasAnt)
+
 This report was automatically generated from the Polytechnic Resources Serial Number Scan Log system.
 
 Best regards,
 Polytechnic Resources Automation
     """
     msg.attach(MIMEText(body, 'plain'))
-    
-    # Attach Excel file
+
+    # Attach detailed Excel report
     filename = f"Build_Report_{report_date.strftime('%m-%d-%Y')}.xlsx"
     with open(excel_path, 'rb') as f:
         part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -914,6 +1035,15 @@ Polytechnic Resources Automation
         encoders.encode_base64(part)
         part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
         msg.attach(part)
+
+    # Attach QuickBooks import file
+    qb_filename = f"QB_Build_Assembly_{report_date.strftime('%m-%d-%Y')}.xlsx"
+    with open(qb_import_path, 'rb') as f:
+        qb_part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        qb_part.set_payload(f.read())
+        encoders.encode_base64(qb_part)
+        qb_part.add_header('Content-Disposition', f'attachment; filename="{qb_filename}"')
+        msg.attach(qb_part)
     
     # Send
     try:
@@ -1034,23 +1164,27 @@ def main():
     
     # Group data
     grouped = group_scans(scans)
-    
-    # Generate Excel (pass scans for summary sheet)
+
+    # Generate Excel reports
     excel_path = generate_excel_report(grouped, scans, target_date)
-    
+    qb_import_path = generate_qb_import_file(scans, target_date)
+
     # Send email (unless test mode)
     if not test_mode:
-        send_email(excel_path, target_date, len(scans))
+        send_email(excel_path, qb_import_path, target_date, len(scans))
     else:
-        print(f"[TEST] Test mode - Excel saved to: {excel_path}")
+        print(f"[TEST] Test mode - Files saved:")
+        print(f"   Build Report: {excel_path}")
+        print(f"   QB Import: {qb_import_path}")
         print(f"   Would send to: {REPORT_RECIPIENTS}")
-    
+
     # Backup to Google Sheets (always, including test mode)
     backup_to_google_sheets(scans, target_date)
-    
+
     # Cleanup (unless test mode)
     if not test_mode:
         os.remove(excel_path)
+        os.remove(qb_import_path)
     
     print("[OK] Report complete!")
 
