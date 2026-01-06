@@ -1104,8 +1104,15 @@
         <div class="password-modal">
             <h2>🔒 Dashboard Access</h2>
             <p>Please enter the dashboard password to continue.</p>
-            <input type="password" id="passwordInput" placeholder="Enter password..."
-                onkeydown="if(event.key==='Enter') checkPassword()">
+            <label for="passwordInput" style="position: absolute; left: -9999px;">Dashboard Password</label>
+            <input type="password" id="passwordInput" name="dashboard-password" autocomplete="current-password"
+                placeholder="Enter password..." onkeydown="if(event.key==='Enter') checkPassword()">
+            <div style="margin: 10px 0; text-align: left;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px;">
+                    <span style="font-size: 14px;">Remember me on this device</span>
+                </label>
+            </div>
             <button class="btn btn-primary" onclick="checkPassword()">Unlock</button>
             <div id="passwordError" style="color: #ef4444; margin-top: 10px; display: none;">Incorrect password</div>
         </div>
@@ -1875,10 +1882,17 @@
         function checkPassword() {
             const input = document.getElementById('passwordInput');
             const error = document.getElementById('passwordError');
+            const rememberMe = document.getElementById('rememberMe');
 
             if (input.value === DASHBOARD_PASSWORD) {
                 document.getElementById('passwordOverlay').classList.add('hidden');
-                sessionStorage.setItem('dashboardUnlocked', 'true');
+
+                // Remember password based on checkbox
+                if (rememberMe.checked) {
+                    localStorage.setItem('dashboardUnlocked', 'true');
+                } else {
+                    sessionStorage.setItem('dashboardUnlocked', 'true');
+                }
             } else {
                 error.style.display = 'block';
                 input.value = '';
@@ -1886,8 +1900,8 @@
             }
         }
 
-        // Check if already unlocked this session
-        if (sessionStorage.getItem('dashboardUnlocked') === 'true') {
+        // Check if already unlocked (localStorage persists, sessionStorage is session-only)
+        if (localStorage.getItem('dashboardUnlocked') === 'true' || sessionStorage.getItem('dashboardUnlocked') === 'true') {
             document.getElementById('passwordOverlay').classList.add('hidden');
         }
 
