@@ -184,15 +184,69 @@ def extract_serial_header(serial: str) -> str:
     """
     if not serial:
         return 'UNKNOWN'
-    
+
     # If serial contains a hyphen (range stored as single value), use first part
     target = serial.split('-')[0]
-    
+
     if len(target) <= 5:
         return target or 'UNKNOWN'
-    
+
     # Take everything except last 5 characters
     return target[:-5]
+
+
+def apply_part_number_variant(part: str, serials: list) -> str:
+    """
+    Apply part number transformations based on serial headers and part patterns.
+
+    Rules:
+    1. PFR prefix: Add '301-' prefix to all part numbers starting with 'PFR'
+       Example: 'PFR60W' -> '301-PFR60W'
+
+    2. MGC variant suffixes: For part numbers starting with '536', append suffix
+       based on serial header pattern:
+       - MGC1S* -> append 'S' (e.g., '536713-001' -> '536713-001S')
+       - MGC2S* -> append 'S' (e.g., '536713-002' -> '536713-002S')
+       - MGC1C* -> append 'C' (e.g., '536713-001' -> '536713-001C')
+       - MGC2C* -> append 'C' (e.g., '536713-002' -> '536713-002C')
+       - MGCK1S* -> append 'S' (e.g., '536719-001' -> '536719-001S')
+
+    Args:
+        part: Original part number
+        serials: List of serial numbers associated with this part
+
+    Returns:
+        Transformed part number string
+    """
+    if not part or not serials:
+        return part
+
+    # Rule 1: Add 301- prefix to PFR parts
+    if part.startswith('PFR'):
+        part = f'301-{part}'
+
+    # Rule 2: Add MGC variant suffix for 536xxx parts
+    # Only apply if part starts with '536' and doesn't already have a suffix
+    if part.startswith('536') and not (part.endswith('S') or part.endswith('C')):
+        # Check all serials to determine the variant
+        # We'll use the first serial's header as the determinant
+        if serials:
+            first_serial = str(serials[0])
+
+            # Known 536xxx part numbers to apply variants to
+            eligible_parts = [
+                '536713-001', '536713-002', '536713-004', '536713-005',
+                '536719-001', '536719-004', '536723-001', '536723-004'
+            ]
+
+            if part in eligible_parts:
+                # Detect suffix based on serial header patterns
+                if first_serial.startswith('MGC1S') or first_serial.startswith('MGC2S') or first_serial.startswith('MGCK1S'):
+                    part = f'{part}S'
+                elif first_serial.startswith('MGC1C') or first_serial.startswith('MGC2C'):
+                    part = f'{part}C'
+
+    return part
 
 
 def format_serial_numbers_only(serials: list) -> str:
@@ -300,14 +354,19 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
                 scan_count = len(serials)
                 pieces = scan_count * PIECES_PER_BOX
                 serial_ranges = format_serial_ranges(serials)
-                
+
+                # Apply part number transformations (PFR prefix, MGC variants)
+                display_part = apply_part_number_variant(part, serials)
+
                 table_rows.append({
                     'operator': operator,
                     'station': station,
                     'part': part,
+                    'display_part': display_part,
                     'scan_count': scan_count,
                     'pieces': pieces,
-                    'serial_ranges': serial_ranges
+                    'serial_ranges': serial_ranges,
+                    'serials': serials
                 })
                 
                 # Track totals by part + serial header
@@ -343,14 +402,22 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         part_total_scans = 0
         part_total_pieces = 0
         headers_for_part = sorted(part_header_totals[part].keys())
-        
+
+        # Get all serials for this part (across all headers) for variant detection
+        all_part_serials = []
+        for h in headers_for_part:
+            all_part_serials.extend(part_header_totals[part][h]['serials'])
+
         for header in headers_for_part:
             totals = part_header_totals[part][header]
             serial_ranges = format_serial_ranges(sorted(totals['serials']))
-            
+
             row_fill = alt_row_fill if row_counter % 2 == 1 else None
-            
-            cell_part = ws.cell(row=row, column=1, value=part)
+
+            # Apply part number transformations (PFR prefix, MGC variants)
+            display_part = apply_part_number_variant(part, all_part_serials)
+
+            cell_part = ws.cell(row=row, column=1, value=display_part)
             cell_part.border = border
             cell_part.alignment = center_align
             if row_fill:
@@ -400,7 +467,7 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         
         # Subtotal row (only if more than one serial header type)
         if len(headers_for_part) > 1:
-            cell_sub_part = ws.cell(row=row, column=1, value=f"{part} SUBTOTAL")
+            cell_sub_part = ws.cell(row=row, column=1, value=f"{display_part} SUBTOTAL")
             cell_sub_part.border = border
             cell_sub_part.alignment = center_align
             cell_sub_part.fill = subtotal_fill
@@ -458,8 +525,8 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         cell.alignment = center_align
         if row_fill:
             cell.fill = row_fill
-        
-        cell = ws.cell(row=row, column=3, value=data['part'])
+
+        cell = ws.cell(row=row, column=3, value=data['display_part'])
         cell.border = border
         cell.alignment = center_align
         if row_fill:
@@ -666,7 +733,13 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
         
         ws_raw.cell(row=row_num, column=1, value=ts_display).border = border
         ws_raw.cell(row=row_num, column=2, value=scan.get('serial_number', '')).border = border
-        ws_raw.cell(row=row_num, column=3, value=scan.get('part_id', '')).border = border
+
+        # Apply part number transformations
+        raw_part = scan.get('part_id', '')
+        raw_serial = scan.get('serial_number', '')
+        display_part_raw = apply_part_number_variant(raw_part, [raw_serial] if raw_serial else [])
+
+        ws_raw.cell(row=row_num, column=3, value=display_part_raw).border = border
         ws_raw.cell(row=row_num, column=4, value=scan.get('operator_name', '')).border = border
         ws_raw.cell(row=row_num, column=5, value=scan.get('station_id', '')).border = border
         ws_raw.cell(row=row_num, column=6, value=scan.get('raw_scan', '')).border = border
@@ -700,14 +773,17 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
     else:
         for part in sorted(global_part_data.keys()):
             data = global_part_data[part]
-            
+
+            # Apply part number transformations
+            display_part_summary = apply_part_number_variant(part, data['serials'])
+
             # Format:
             # <Part Number>
             # TOTAL PIECES: <Count>
             # SERIAL SEQUENCES: <Ranges>
-            
+
             # Part Part Number
-            cell_part = ws_part_summary.cell(row=ps_row, column=1, value=part)
+            cell_part = ws_part_summary.cell(row=ps_row, column=1, value=display_part_summary)
             cell_part.font = Font(bold=True, size=12)
             ps_row += 1
             
@@ -774,7 +850,13 @@ def generate_excel_report(grouped_data: dict, scans: list, report_date: datetime
             
             ws_op.cell(row=row_num, column=1, value=ts_display).border = border
             ws_op.cell(row=row_num, column=2, value=scan.get('serial_number', '')).border = border
-            ws_op.cell(row=row_num, column=3, value=scan.get('part_id', '')).border = border
+
+            # Apply part number transformations
+            op_part = scan.get('part_id', '')
+            op_serial = scan.get('serial_number', '')
+            display_part_op = apply_part_number_variant(op_part, [op_serial] if op_serial else [])
+
+            ws_op.cell(row=row_num, column=3, value=display_part_op).border = border
             ws_op.cell(row=row_num, column=4, value=scan.get('station_id', '')).border = border
             ws_op.cell(row=row_num, column=5, value=scan.get('raw_scan', '')).border = border
             ws_op.cell(row=row_num, column=6, value=scan.get('batch_comment', '')).border = border
@@ -890,11 +972,16 @@ def backup_to_google_sheets(scans: list, report_date: datetime):
             else:
                 ts_display = ''
             
+            # Apply part number transformations
+            gsheet_part = scan.get('part_id', '')
+            gsheet_serial = scan.get('serial_number', '')
+            display_part_gsheet = apply_part_number_variant(gsheet_part, [gsheet_serial] if gsheet_serial else [])
+
             rows_to_append.append([
                 date_str,
                 ts_display,
                 scan.get('serial_number', ''),
-                scan.get('part_id', ''),
+                display_part_gsheet,
                 scan.get('operator_name', ''),
                 scan.get('station_id', ''),
                 scan.get('batch_comment', '')

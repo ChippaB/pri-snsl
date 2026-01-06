@@ -2,7 +2,9 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
-// v8.6.0: Client-side barcode validation - rejects malformed scans BEFORE they reach the database (fail-fast)\n// v8.5.4: HIBC check digit stripped ONLY if 6+ trailing digits (5 digit min safety net for misconfigured barcodes)
+// v8.6.1: Fixed 100780W parsing (legacy label fix for +B4461007801 barcodes)
+// v8.6.0: Client-side barcode validation - rejects malformed scans BEFORE they reach the database (fail-fast)
+// v8.5.4: HIBC check digit stripped ONLY if 6+ trailing digits (5 digit min safety net for misconfigured barcodes)
 // v8.5.3: (superseded by v8.5.4)
 // v8.5.2: (superseded by v8.5.3)
 // v8.5.1: Scan field now locked until Part Number Map loads - prevents UNKNOWN entries from premature scanning
@@ -898,8 +900,16 @@ function parsePN_SN(s) {
             }
         }
 
-        if (p.startsWith('446') && p.length > 4 && (p.includes('PUL') || p.endsWith('1') || p.endsWith('0'))) {
-            p = p.substring(3, p.length - 1);
+        // Special handling for 446-prefix HIBC barcodes
+        if (p.startsWith('446') && p.length > 4) {
+            // Special case: 4461007801 should become 100780W (legacy label fix)
+            if (p === '4461007801') {
+                p = '100780W';
+            }
+            // Standard PUL patterns or numeric endings: strip prefix and check digit
+            else if (p.includes('PUL') || p.endsWith('1') || p.endsWith('0')) {
+                p = p.substring(3, p.length - 1);
+            }
         }
 
         return sectionResult(p, sNum);
