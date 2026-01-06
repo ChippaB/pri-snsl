@@ -52,7 +52,10 @@ const BARCODE_VALIDATION = {
             pattern: /\/\$\+/  // Must contain /$+ delimiter
         }
     },
-    SUSPICIOUS_CHARS: /[*#@!~`%^&()={}|[\]<>;:'"]/
+    // Suspicious characters that indicate scanner errors
+    // NOTE: % is VALID for HIBC check digits (Mod 43), so it's excluded
+    // Valid HIBC check chars: 0-9, A-Z, and special chars: - . $ / + %
+    SUSPICIOUS_CHARS: /[*#@!~`^&()={}|[\]<>;:'"]/
 };
 
 // ===== OFFLINE QUEUE (IndexedDB) =====
@@ -575,7 +578,7 @@ function playSoundError() {
  * Show validation rejection error with enhanced feedback
  * Used for client-side barcode validation failures
  */
-function showValidationError(reason) {
+function showValidationError(reason, rawBarcode = '') {
     // Visual: Extended red flash for emphasis
     document.body.style.transition = 'background-color 0.5s';
     document.body.style.backgroundColor = '#ef4444';
@@ -588,8 +591,13 @@ function showValidationError(reason) {
         navigator.vibrate([100, 50, 100, 50, 100]);
     }
 
-    // UI: Show error with specific message
-    show(`❌ INVALID SCAN: ${reason}`, 'err');
+    // UI: Show error with specific message and barcode for troubleshooting
+    const truncatedBarcode = rawBarcode.length > 30 ? rawBarcode.substring(0, 30) + '...' : rawBarcode;
+    const errorMessage = rawBarcode
+        ? `❌ SCAN REJECTED: ${reason}\n📋 Barcode: ${truncatedBarcode}`
+        : `❌ INVALID SCAN: ${reason}`;
+
+    show(errorMessage, 'err');
 
     // Extended red background for emphasis
     setTimeout(() => {
@@ -597,7 +605,7 @@ function showValidationError(reason) {
     }, 800);
 
     // Log for analytics/debugging
-    console.warn(`[VALIDATION REJECTED] ${reason}`);
+    console.warn(`[VALIDATION REJECTED] ${reason}`, rawBarcode ? `Barcode: ${rawBarcode}` : '');
 }
 
 function show(msg, cls) {
@@ -1215,7 +1223,7 @@ scanInput.addEventListener('keydown', async (ev) => {
     // Fail-fast: Reject malformed barcodes BEFORE they reach the database
     const validation = validateRawBarcode(raw);
     if (!validation.valid) {
-        showValidationError(validation.reason);
+        showValidationError(validation.reason, raw);
         scanInput.value = '';  // Clear for immediate rescan
         scanInput.focus();
         return;  // FAIL FAST - never reaches database
