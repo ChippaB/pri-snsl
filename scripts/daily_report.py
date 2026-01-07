@@ -256,7 +256,7 @@ def apply_part_number_variant(part: str, serials: list) -> str:
     #   - MGCK1S58198 (header: MGCK1S) -> append 'S' -> '536719-001S'
     #   - MGCK2S14399 (header: MGCK2S) -> append 'S' -> '536723-001S'
     # Ignores first 3 chars "MGC", then looks for S or C at the end
-    # This handles 536xxx AND any other MGC part numbers automatically
+    # This handles ALL MGC part numbers automatically (not just 536xxx)
     if part.startswith("MGC") and not (part.endswith("S") or part.endswith("C")):
         # Check all serials to determine variant
         # We'll use the first serial's header as the determinant
