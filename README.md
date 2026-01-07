@@ -1,40 +1,88 @@
 # PRI Serial Number Log (SNSL)
 
-A mobile-friendly barcode scanning app for tracking production serial numbers.
+A mobile-friendly Progressive Web App (PWA) for tracking production serial numbers through barcode scanning.
+
+## Current Version: v8.6.4
+
+**Latest Changes (Jan 7, 2026):**
+- Fixed HIBC check digit stripping for mixed barcode formats
+- Handles 6-digit serials without check digits
+- Service worker error handling for offline scenarios
+- Dashboard fixes
 
 ## What It Does
 
-- **Scan Barcodes**: Operators scan boxes using their phones
-- **Track Everything**: Every scan is saved with who, what, when, and where
-- **Live Dashboard**: See all scans in real-time with filters and search
-- **Daily Reports**: Automatic email reports every night at midnight
-- **Works Offline**: Keeps working even with spotty WiFi
+- **Scan Barcodes**: Operators scan boxes using mobile phones/tablets
+- **Track Everything**: Every scan saved with operator, part, serial, station, and timestamp
+- **Live Dashboard**: Real-time analytics with filters, search, and Excel export
+- **Daily Reports**: Automatic email reports every night at midnight EST
+- **Works Offline**: IndexedDB cache + service worker for spotty WiFi
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | Frontend | HTML/CSS/JavaScript (PWA) |
-| Database | Supabase (cloud PostgreSQL) |
+| Database | Supabase (PostgreSQL) |
 | Hosting | Vercel (free tier) |
 | Reports | GitHub Actions + Python |
+| Offline | IndexedDB + Service Worker |
 
-## Files
+## Project Structure
 
 ```
 pri-snsl/
-├── index.html          # Main scanning app
-├── dashboard.html      # Analytics dashboard
-├── app.js              # App logic
-├── service-worker.js   # Offline support
-├── manifest.json       # PWA settings
-├── icon-*.png          # App icons
-├── vercel.json         # Hosting config
+├── index.html              # Main scanning app
+├── dashboard.html          # Analytics dashboard (edit/delete, export)
+├── my-scans.html          # Operator's personal scan history
+├── app.js                 # Core application logic (parsing, validation)
+├── service-worker.js       # PWA offline support (cache strategy)
+├── manifest.json          # PWA manifest (installable)
+├── icon-*.png            # App icons (192x512px)
+├── favicon.ico            # Browser favicon
+├── vercel.json            # Vercel hosting config
+├── README.md              # This file (project overview)
+├── CLIENT_SUMMARY.md       # Client-facing documentation
+├── supabase_schema.md     # Database schema reference
 ├── scripts/
-│   └── daily_report.py # Daily email report
+│   ├── daily_report.py     # Daily email report generation
+│   ├── SETUP_GUIDE.md     # Report setup instructions
+│   ├── requirements.txt     # Python dependencies
+│   └── run_daily_report_manual.ps1  # Manual report runner
+├── tests/
+│   ├── test_hibc_check_digit.js  # HIBC parsing tests
+│   ├── test_mgc_fix.py            # MGC variant tests
+│   └── test_validation.js          # Barcode validation tests
+├── archive/
+│   ├── fix_hibc_serials.sql       # Historical data fixes
+│   ├── fix_scan_part_ids.sql       # Part ID corrections
+│   ├── supabase_flagged_scans.sql  # Flagged scans trigger
+│   └── supabase_rls_fix.sql       # RLS policy fixes
 └── .github/workflows/
-    └── daily-report.yml # Scheduled automation
+    └── daily-report.yml    # Scheduled automation (11:59 PM EST)
 ```
+
+## Barcode Format Support
+
+| Format | Pattern | Example | Parsing |
+|--------|----------|----------|----------|
+| GS1-128 | `01` + 14 digits + serial | `0112345678901234...` | Standard GS1 parsing |
+| HIBC | `/$+` delimiter | `+B446757WM1/$+R757WM102698%` | Modulo 43 check digit stripping |
+| MGC | Alphanumeric (5-digit serials) | `MGC1S17754` | Part number extraction |
+| Custom | Various patterns | `R756PUL12345` | Format detection |
+
+### HIBC Barcode Handling
+
+**v8.6.4 Logic:**
+- Special character/letter check digits: Always stripped (unambiguous)
+- Digit check digits with >6 trailing chars: Stripped (must have check digit)
+- Digit check digits with ≤6 trailing chars: NOT stripped (could be serial without check digit)
+
+**Examples:**
+- `R757WM102698%` → `R757WM102698` (special char stripped)
+- `R757WM1026990` → `R757WM102699` (7 trailing, digit stripped)
+- `R757WM102694` → `R757WM102694` (6 trailing, NO strip - no check digit)
+- `R757WM102698` → `R757WM102698` (5 trailing, NO strip - no check digit)
 
 ## Setup
 

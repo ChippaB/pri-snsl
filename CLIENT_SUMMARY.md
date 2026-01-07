@@ -1,8 +1,32 @@
-# Your New Scanning System - Simple Explanation
+# Your Scanning System - Simple Explanation
 
-## What Changed This Week
+## Current Version: v8.6.4 (January 2026)
 
-We started the week with one system and ended with a much better one. Here's what's different, explained simply.
+## What the App Does
+
+Your scanning system has been upgraded to be faster, more reliable, and easier to use. Here's what you have now:
+
+---
+
+## Recent Improvements (v8.6.4)
+
+### Barcode Scanning Fixes
+
+**Problem Solved:**
+Your barcodes were inconsistent - some had check digits, some didn't. The system was incorrectly stripping numbers from serial numbers.
+
+**What Was Wrong:**
+- Barcode ending in `R757WM102694` was being changed to `R757WM10269`
+- Barcode ending in `R757WM102698` was being changed to `R757WM10269`
+- These 6-digit serial numbers were losing their last digit
+
+**What's Fixed Now:**
+- ✅ `R757WM102694` → stays as `R757WM102694` (correct)
+- ✅ `R757WM102698` → stays as `R757WM102698` (correct)
+- ✅ `R757WM1026990` → becomes `R757WM102699` (check digit removed)
+- ✅ `R757WM102698%` → becomes `R757WM102698` (check digit removed)
+
+**Result:** All your inconsistent barcode labels now scan correctly, whether they have check digits or not.
 
 ---
 
@@ -112,6 +136,18 @@ If any one system has a problem, you still have your data in the other places.
 - **You own everything** - All code, all data, all accounts
 - **No monthly fees** - Uses free tiers of all services
 - **Easy to maintain** - Simple code, well documented
+- **Regular updates** - System improves based on your feedback
+
+---
+
+## Need Help?
+
+The system is built to work with your real-world needs:
+- If barcode labels are inconsistent, we fix the parsing
+- If you need new reports, we add them
+- If something isn't working right, let us know
+
+This is **your** system - we make it work the way **you** work.
 
 ---
 

@@ -1,1 +1,17 @@
+# Excel exports
 *.xlsx
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Smart Coding MCP cache
+.smart-coding-cache/
+
+# Temporary files
+*.tmp
+*.temp
+nul
+.DS_Store
+Thumbs.db
