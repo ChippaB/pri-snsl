@@ -10,6 +10,7 @@ Usage:
 
 import os
 import sys
+import re
 from datetime import datetime, timedelta
 from collections import defaultdict
 import smtplib
@@ -204,12 +205,15 @@ def apply_part_number_variant(part: str, serials: list) -> str:
        Example: 'PFR60W' -> '301-PFR60W'
 
     2. MGC variant suffixes: For part numbers starting with '536', append suffix
-       based on serial header pattern:
-       - MGC1S* -> append 'S' (e.g., '536713-001' -> '536713-001S')
-       - MGC2S* -> append 'S' (e.g., '536713-002' -> '536713-002S')
-       - MGC1C* -> append 'C' (e.g., '536713-001' -> '536713-001C')
-       - MGC2C* -> append 'C' (e.g., '536713-002' -> '536713-002C')
-       - MGCK1S* -> append 'S' (e.g., '536719-001' -> '536719-001S')
+       based on serial header pattern (everything before last 5 digits):
+       - Pattern: MGC + any chars + S/C at end
+       - Examples:
+         * MGC1S17775 (header: MGC1S) -> append 'S' -> '536713-001S'
+         * MGC2C10800 (header: MGC2C) -> append 'C' -> '536713-002C'
+         * MGC4C93025 (header: MGC4C) -> append 'C' -> '536713-004C'
+         * MGCK1S58198 (header: MGCK1S) -> append 'S' -> '536719-001S'
+         * MGCK2S14399 (header: MGCK2S) -> append 'S' -> '536723-001S'
+       - Ignores first 3 chars "MGC", looks for S or C at end of header
 
     Args:
         part: Original part number
@@ -240,11 +244,16 @@ def apply_part_number_variant(part: str, serials: list) -> str:
             ]
 
             if part in eligible_parts:
-                # Detect suffix based on serial header patterns
-                if first_serial.startswith('MGC1S') or first_serial.startswith('MGC2S') or first_serial.startswith('MGCK1S'):
-                    part = f'{part}S'
-                elif first_serial.startswith('MGC1C') or first_serial.startswith('MGC2C'):
-                    part = f'{part}C'
+                # Extract the serial header (everything before last 5 digits)
+                header = extract_serial_header(first_serial)
+
+                # Pattern: MGC + optional chars + (S or C) at the end
+                # This handles: MGC1S, MGC2S, MGC3C, MGC4C, MGCK1S, MGCK2S, etc.
+                # Ignore first 3 chars "MGC", then look for S or C at the end
+                match = re.search(r'^MGC.*(S|C)$', header, re.IGNORECASE)
+                if match:
+                    suffix = match.group(1).upper()  # Extract the S or C
+                    part = f'{part}{suffix}'
 
     return part
 

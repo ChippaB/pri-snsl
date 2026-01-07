@@ -742,6 +742,19 @@ function validateRawBarcode(rawScan) {
         return { valid: false, reason: 'Unknown barcode format' };
     }
 
+    // HIBC-specific validation: Require non-digit check digit for R757WM serials
+    if (isHIBC && cleaned.includes('R757WM')) {
+        // R757WM serials must end with a letter or special char, not a digit
+        // This prevents malformed barcodes without check digits from entering system
+        const lastChar = cleaned.charAt(cleaned.length - 1);
+        if (/^[0-9]$/.test(lastChar)) {
+            return {
+                valid: false,
+                reason: 'R757WM barcode must end with letter/special char check digit (not digit)'
+            };
+        }
+    }
+
     // Format-specific validation
     if (isGS1 && cleaned.length < BARCODE_VALIDATION.FORMATS.GS1_128.minLength) {
         return {
@@ -881,31 +894,44 @@ function parsePN_SN(s) {
             if (sNum.startsWith('+')) sNum = sNum.substring(1);
         }
 
-        // HIBC Check Digit Stripping (v8.5.4):
+        // HIBC Check Digit Stripping (v8.6.3):
         // HIBC standard: Serial format is PART_PREFIX + 5-DIGIT-SERIAL + CHECK_DIGIT
         // Examples:
-        //   760E2 + 10718 + 5 = 760E2107185 → strip last → 760E210718
-        //   757EN + 11203 + 6 = 757EN112036 → strip last → 757EN11203
-        //   TNN102 + 12238 + F = TNN10212238F → strip last → TNN10212238
+        //   760E2 + 10718 + 5 = 760E2107185 → strip 5 → 760E210718 (6 digits remain)
+        //   757EN + 11203 + 6 = 757EN112036 → strip 6 → 757EN11203 (5 digits remain)
+        //   TNN102 + 12238 + F = TNN10212238F → strip F → TNN10212238
+        //   R757WM + 102689 + % = R757WM102689% → strip % → R757WM102689
         //
-        // Rule: Strip the last character IF it would leave at least 5 trailing digits
-        // Safety: If barcode is misconfigured (no check digit), don't over-strip
+        // Valid HIBC Modulo 43 check digit chars: 0-9, A-Z, and special: - . $ / + %
+        // Rule: Strip the last character ONLY IF:
+        //   1. Last char is a LETTER or SPECIAL CHAR (unambiguous check digit), OR
+        //   2. Last char is DIGIT AND there are >5 chars after the last letter
+        // Safety: Don't strip if ≤5 chars remain after last letter (serial would be too short)
         if (sNum.length > 1) {
-            // Find the last letter to determine trailing digits after stripping
-            const lastLetterMatch = sNum.match(/[A-Z]/gi);
-            if (lastLetterMatch) {
-                const lastLetter = lastLetterMatch[lastLetterMatch.length - 1];
-                const lastLetterPos = sNum.lastIndexOf(lastLetter);
-                const currentTrailingDigits = sNum.substring(lastLetterPos + 1);
+            const lastChar = sNum.charAt(sNum.length - 1);
+            const isLetter = /^[A-Z]$/i.test(lastChar);
+            const isSpecialChar = /^[\-\.\$\/\+\%]$/.test(lastChar);
 
-                // Only strip if we'd still have 5+ digits after the last letter
-                if (currentTrailingDigits.length > 5) {
+            // Always strip letters and special chars (they're clearly check digits)
+            if (isLetter || isSpecialChar) {
+                sNum = sNum.substring(0, sNum.length - 1);
+            }
+            // For digits: check if we have enough trailing chars to safely strip
+            else {
+                const letterMatches = sNum.match(/[A-Z]/gi);
+                if (letterMatches) {
+                    const lastLetter = letterMatches[letterMatches.length - 1];
+                    const lastLetterPos = sNum.lastIndexOf(lastLetter);
+                    const trailingChars = sNum.substring(lastLetterPos + 1);
+
+                    // Only strip if we have >5 trailing chars (leaves 5+ after strip)
+                    if (trailingChars.length > 5) {
+                        sNum = sNum.substring(0, sNum.length - 1);
+                    }
+                } else {
+                    // All numeric serial - strip last digit
                     sNum = sNum.substring(0, sNum.length - 1);
                 }
-                // If exactly 5 or fewer digits, assume no check digit - keep as-is
-            } else {
-                // No letters found (all numeric serial) - always strip last char
-                sNum = sNum.substring(0, sNum.length - 1);
             }
         }
 
