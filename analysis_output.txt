@@ -1,0 +1,1309 @@
+
+============================================================
+SERIAL NUMBER PATTERN ANALYSIS
+============================================================
+
+Connecting to Supabase...
+Fetching all scans from Supabase...
+  Fetched 1000 records (total: 1000)
+  Fetched 1000 records (total: 2000)
+  Fetched 1000 records (total: 3000)
+  Fetched 1000 records (total: 4000)
+  Fetched 509 records (total: 4509)
+
+Total records fetched: 4509
+Unique part IDs found: 92
+
+Analyzing serial patterns per part ID...
+------------------------------------------------------------
+[OK] 100752EL
+    Records: 2
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 752EL
+    Unique prefixes: 1
+    Examples: 752EL12421, 752EL12420
+
+[OK] 100752EW
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 752EW
+    Unique prefixes: 1
+    Examples: 752EW24831
+
+[OK] 100752WKW
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 752WKN
+    Unique prefixes: 1
+    Examples: 752WKN10484
+
+[OK] 100756E2
+    Records: 1
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: 756E
+    Unique prefixes: 1
+    Examples: 756E210492
+
+[OK] 100756EL
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 756EL
+    Unique prefixes: 1
+    Examples: 756EL10120
+
+[WARN] 100756EW
+    Records: 31
+    Digit counts: [0, 5]
+    Most common: 5 digits
+    Most common prefix: 756EW
+    Unique prefixes: 2
+    Examples: 756EW15410, 756EW15411, 756EW15412
+
+[WARN] 100756NW
+    Records: 87
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 756NW
+    Unique prefixes: 1
+    Examples: 756NW15257, 756NW15258, 756NW15235
+
+[OK] 100757E2
+    Records: 27
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: 757E
+    Unique prefixes: 1
+    Examples: 757E210875, 757E210876, 757E210881
+
+[WARN] 100757EL
+    Records: 30
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 757EL
+    Unique prefixes: 1
+    Examples: 757EL12421, 757EL12407, 757EL12414
+
+[WARN] 100757EN
+    Records: 11
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 757EN
+    Unique prefixes: 1
+    Examples: 757EN112025, 757EN112036, 757EN11204
+
+[WARN] 100757EW
+    Records: 79
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 757EW
+    Unique prefixes: 1
+    Examples: 757EW24824, 757EW24825, 757EW24826
+
+[OK] 100757NKNW
+    Records: 6
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 757NKNW
+    Unique prefixes: 1
+    Examples: 757NKNW10480, 757NKNW10481, 757NKNW10482
+
+[OK] 100757NW
+    Records: 8
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 757NW
+    Unique prefixes: 1
+    Examples: 757NW14017, 757NW14018, 757NW14012
+
+[WARN] 100758EL
+    Records: 13
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 758EL
+    Unique prefixes: 1
+    Examples: 758EL11421, 758EL11420, 758EL11422
+
+[OK] 100758EW
+    Records: 10
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 758EW
+    Unique prefixes: 1
+    Examples: 758EW14517, 758EW14510, 758EW14511
+
+[OK] 100758NKNW
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 758NKNW
+    Unique prefixes: 1
+    Examples: 758NKNW10666
+
+[OK] 100758NW
+    Records: 9
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 758NW
+    Unique prefixes: 1
+    Examples: 758NW12662, 758NW12658, 758NW12659
+
+[OK] 100759E2
+    Records: 37
+    Digit counts: [7]
+    Most common: 7 digits
+    Most common prefix: 759E
+    Unique prefixes: 1
+    Examples: 759E2109852, 759E2109853, 759E2109850
+
+[OK] 100759EL
+    Records: 6
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 759EL
+    Unique prefixes: 1
+    Examples: 759EL10402, 759EL10403, 759EL10404
+
+[OK] 100759ELRN
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 100759ELRN
+    Unique prefixes: 1
+    Examples: 100759ELRN20011
+
+[OK] 100759EW
+    Records: 10
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 759EW
+    Unique prefixes: 1
+    Examples: 759EW13790, 759EW13791, 759EW13792
+
+[OK] 100759NW
+    Records: 2
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 759NW
+    Unique prefixes: 1
+    Examples: 759NW13607, 759NW13608
+
+[OK] 100759WC
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 759WC
+    Unique prefixes: 1
+    Examples: 759WC10673
+
+[OK] 100760
+    Records: 4
+    Digit counts: [0]
+    Most common: 0 digits
+    Most common prefix: 7
+    Unique prefixes: 1
+    Examples: 76012641, 76012642, 76012643
+
+[WARN] 100760E
+    Records: 24
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 760E
+    Unique prefixes: 1
+    Examples: 760E13274, 760E13272, 760E13273
+
+[WARN] 100760E2
+    Records: 9
+    Digit counts: [6, 7]
+    Most common: 6 digits
+    Most common prefix: 760E
+    Unique prefixes: 1
+    Examples: 760E210722, 760E210723, 760E2107152
+
+[WARN] 100760EL
+    Records: 15
+    Digit counts: [4, 5, 6]
+    Most common: 5 digits
+    Most common prefix: 760EL
+    Unique prefixes: 1
+    Examples: 760EL12507, 760EL12508, 760EL12509
+
+[WARN] 100760ELN
+    Records: 11
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: 760ELN
+    Unique prefixes: 1
+    Examples: 760ELN10291, 760ELN10292, 760ELN10293
+
+[OK] 100760K
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 760K
+    Unique prefixes: 1
+    Examples: 760K10848
+
+[OK] 100760KN
+    Records: 6
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 760KN
+    Unique prefixes: 1
+    Examples: 760KN10418, 760KN10421, 760KN10422
+
+[OK] 100780EL
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 780EL
+    Unique prefixes: 1
+    Examples: 780EL10000
+
+[OK] 100780EW
+    Records: 12
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 780EW
+    Unique prefixes: 1
+    Examples: 780EW10809, 780EW10810, 780EW10805
+
+[OK] 100780NKNW
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 780NKNW
+    Unique prefixes: 1
+    Examples: 780NKNW10242
+
+[OK] 100780W
+    Records: 3
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 780W
+    Unique prefixes: 1
+    Examples: 780W11107, 780W11108, 780W11109
+
+[WARN] 536713-001
+    Records: 43
+    Digit counts: [0, 5, 6]
+    Most common: 5 digits
+    Most common prefix: MGC1S
+    Unique prefixes: 4
+    Examples: MGC1S17774, MGC1S17760, MGC1S17761
+
+[WARN] 536713-002
+    Records: 682
+    Digit counts: [0, 5, 6, 7]
+    Most common: 6 digits
+    Most common prefix: MGC2S
+    Unique prefixes: 7
+    Examples: MGC2S104117, MGC2S104118, MGC2S103972
+
+[OK] 536713-002S
+    Records: 6
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: MGC2S
+    Unique prefixes: 1
+    Examples: MGC2S104111, MGC2S104112, MGC2S104113
+
+[OK] 536713-004
+    Records: 20
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: MGC4C
+    Unique prefixes: 1
+    Examples: MGC4C93025, MGC4C93026, MGC4C93035
+
+[WARN] 536713-005
+    Records: 52
+    Digit counts: [5, 6]
+    Most common: 6 digits
+    Most common prefix: MGC
+    Unique prefixes: 2
+    Examples: MGC512175, MGC512176, MGC512177
+
+[WARN] 536719-001
+    Records: 1774
+    Digit counts: [0, 5, 6]
+    Most common: 6 digits
+    Most common prefix: MGCK
+    Unique prefixes: 8
+    Examples: MGCK173132, MGCK173133, MGCK173137
+
+[OK] 536719-001S
+    Records: 7
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: MGCK1S
+    Unique prefixes: 1
+    Examples: MGCK1S58069, MGCK1S58070, MGCK1S58071
+
+[WARN] 536719-004
+    Records: 8
+    Digit counts: [5, 6]
+    Most common: 6 digits
+    Most common prefix: MGCK
+    Unique prefixes: 2
+    Examples: MGCK365005, MGCK365001, MGCK365006
+
+[WARN] 536723-001
+    Records: 238
+    Digit counts: [6, 7]
+    Most common: 7 digits
+    Most common prefix: MGCK
+    Unique prefixes: 2
+    Examples: MGCK2S114312, MGCK2S114313, MGCK2114212
+
+[WARN] 756EL
+    Records: 30
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: R756EL
+    Unique prefixes: 1
+    Examples: R756EL11978, R756EL11979, R756EL11980
+
+[OK] 756EW
+    Records: 33
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R756EW
+    Unique prefixes: 1
+    Examples: R756EW12813, R756EW12814, R756EW12815
+
+[OK] 756W
+    Records: 5
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R756W
+    Unique prefixes: 1
+    Examples: R756W10867, R756W10868, R756W10865
+
+[OK] 757E2
+    Records: 7
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: R757E
+    Unique prefixes: 1
+    Examples: R757E210159, R757E210160, R757E210161
+
+[OK] 757EL
+    Records: 30
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R757EL
+    Unique prefixes: 1
+    Examples: R757EL11295, R757EL11296, R757EL11297
+
+[OK] 757ELMSN
+    Records: 3
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R757ELMSN
+    Unique prefixes: 1
+    Examples: R757ELMSN10232, R757ELMSN10230, R757ELMSN10231
+
+[OK] 757EW
+    Records: 61
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R757EW
+    Unique prefixes: 1
+    Examples: R757EW13827, R757EW13828, R757EW13829
+
+[OK] 757WM
+    Records: 29
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: R757WM
+    Unique prefixes: 1
+    Examples: R757WM102684, R757WM102692, R757WM102698
+
+[OK] 757WMN
+    Records: 3
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R757WMN
+    Unique prefixes: 1
+    Examples: R757WMN10667, R757WMN10668, R757WMN10669
+
+[OK] 758EL
+    Records: 15
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R758EL
+    Unique prefixes: 1
+    Examples: R758EL11180, R758EL11187, R758EL11191
+
+[OK] 758EW
+    Records: 4
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R758EW
+    Unique prefixes: 1
+    Examples: R758EW10429, R758EW10430, R758EW10431
+
+[OK] 758W
+    Records: 14
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R758W
+    Unique prefixes: 1
+    Examples: R758W11383, R758W11378, R758W11384
+
+[OK] 758WM
+    Records: 5
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R758WM
+    Unique prefixes: 1
+    Examples: R758WM11022, R758WM11018, R758WM11019
+
+[OK] 758WMN
+    Records: 5
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R758WMN
+    Unique prefixes: 1
+    Examples: R758WMN11182, R758WMN11183, R758WMN11184
+
+[OK] 759E2
+    Records: 2
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: R759E
+    Unique prefixes: 1
+    Examples: R759E210123, R759E210124
+
+[OK] 759EL
+    Records: 19
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R759EL
+    Unique prefixes: 1
+    Examples: R759EL14060, R759EL14061, R759EL14062
+
+[WARN] 759EW
+    Records: 15
+    Digit counts: [5, 6]
+    Most common: 5 digits
+    Most common prefix: R759EW
+    Unique prefixes: 1
+    Examples: R759EW12116, R759EW12117, R759EW12118
+
+[OK] 759WMN
+    Records: 3
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R759WMN
+    Unique prefixes: 1
+    Examples: R759WMN10430, R759WMN10431, R759WMN10432
+
+[OK] 760EL
+    Records: 6
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R760EL
+    Unique prefixes: 1
+    Examples: R760EL10330, R760EL10331, R760EL10332
+
+[OK] 780EW
+    Records: 11
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R780EW
+    Unique prefixes: 1
+    Examples: R780EW10911, R780EW10907, R780EW10908
+
+[OK] 790EL
+    Records: 20
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R790EL
+    Unique prefixes: 1
+    Examples: R790EL13825, R790EL13826, R790EL13828
+
+[OK] 790W
+    Records: 20
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: R790W
+    Unique prefixes: 1
+    Examples: R790W10357, R790W10358, R790W10359
+
+[OK] 7EW1
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: EBS757EW
+    Unique prefixes: 1
+    Examples: EBS757EW10186
+
+[OK] EBS756NW
+    Records: 8
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: EBS756NW
+    Unique prefixes: 1
+    Examples: EBS756NW10198, EBS756NW10199, EBS756NW10200
+
+[OK] EBS757EW
+    Records: 36
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: EBS757EW
+    Unique prefixes: 1
+    Examples: EBS757EW10176, EBS757EW10177, EBS757EW10178
+
+[OK] EBS757NW
+    Records: 11
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: EBS757NW
+    Unique prefixes: 1
+    Examples: EBS757NW10386, EBS757NW10387, EBS757NW10388
+
+[OK] EBS759EL
+    Records: 20
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: EBS759EL
+    Unique prefixes: 1
+    Examples: EBS759EL10057, EBS759EL10058, EBS759EL10059
+
+[OK] EBS780NW
+    Records: 12
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: EBS780NW
+    Unique prefixes: 1
+    Examples: EBS780NW10452, EBS780NW10453, EBS780NW10454
+
+[OK] FIL7958
+    Records: 36
+    Digit counts: [9]
+    Most common: 9 digits
+    Most common prefix: FIL
+    Unique prefixes: 1
+    Examples: FIL795817496, FIL795817506, FIL795817526
+
+[OK] P55541001
+    Records: 2
+    Digit counts: [0]
+    Most common: 0 digits
+    Most common prefix: 4
+    Unique prefixes: 1
+    Examples: 410013027, 410013028
+
+[OK] P5554100E
+    Records: 6
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 4100E
+    Unique prefixes: 1
+    Examples: 4100E11392, 4100E11393, 4100E11394
+
+[OK] P5556100
+    Records: 1
+    Digit counts: [0]
+    Most common: 0 digits
+    Most common prefix: 6
+    Unique prefixes: 1
+    Examples: 61001263
+
+[OK] P5556100E
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 6100E
+    Unique prefixes: 1
+    Examples: 6100E10344
+
+[OK] P5556100E1
+    Records: 1
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 6100E
+    Unique prefixes: 1
+    Examples: 6100E10343
+
+[OK] P5557100E
+    Records: 24
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 7100E
+    Unique prefixes: 1
+    Examples: 7100E11130, 7100E11154, 7100E11149
+
+[OK] P5559100E
+    Records: 8
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: 9100E
+    Unique prefixes: 1
+    Examples: 9100E10406, 9100E10407, 9100E10409
+
+[OK] PFR60W
+    Records: 3
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR60W
+    Unique prefixes: 1
+    Examples: PFR60W10979, PFR60W10980, PFR60W10981
+
+[OK] PFR60WE2
+    Records: 47
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: PFR60WE
+    Unique prefixes: 1
+    Examples: PFR60WE214502, PFR60WE214503, PFR60WE214504
+
+[OK] PFR60WK
+    Records: 23
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR60WK
+    Unique prefixes: 1
+    Examples: PFR60WK11420, PFR60WK11421, PFR60WK11422
+
+[OK] PFR70W
+    Records: 17
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR70W
+    Unique prefixes: 1
+    Examples: PFR70W11087, PFR70W11088, PFR70W11089
+
+[WARN] PFR70WE2N
+    Records: 4
+    Digit counts: [0, 5]
+    Most common: 5 digits
+    Most common prefix: PFR70WE2N
+    Unique prefixes: 2
+    Examples: PFR70WE2N10967, PFR70WE2N10968, PFR70WE2N10971
+
+[OK] PFR80W
+    Records: 19
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR80W
+    Unique prefixes: 1
+    Examples: PFR80W13224, PFR80W13225, PFR80W13230
+
+[OK] PFR80WE2
+    Records: 14
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: PFR80WE
+    Unique prefixes: 1
+    Examples: PFR80WE215977, PFR80WE215978, PFR80WE215979
+
+[OK] PFR80WKN
+    Records: 8
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR80WKN
+    Unique prefixes: 1
+    Examples: PFR80WKN13185, PFR80WKN13186, PFR80WKN13187
+
+[OK] PFR80WN
+    Records: 5
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR80WN
+    Unique prefixes: 1
+    Examples: PFR80WN10488, PFR80WN10490, PFR80WN10491
+
+[OK] PFR8WE2
+    Records: 3
+    Digit counts: [6]
+    Most common: 6 digits
+    Most common prefix: PFR8WE
+    Unique prefixes: 1
+    Examples: PFR8WE210774, PFR8WE210775, PFR8WE210776
+
+[OK] PFR8WK
+    Records: 7
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PFR8WK
+    Unique prefixes: 1
+    Examples: PFR8WK10499, PFR8WK10500, PFR8WK10497
+
+[OK] PUL9000K
+    Records: 555
+    Digit counts: [5]
+    Most common: 5 digits
+    Most common prefix: PUL9000K
+    Unique prefixes: 1
+    Examples: PUL9000K29268, PUL9000K29281, PUL9000K29289
+
+[OK] TNN102
+    Records: 5
+    Digit counts: [8]
+    Most common: 8 digits
+    Most common prefix: TNN
+    Unique prefixes: 1
+    Examples: TNN10212237, TNN10212238, TNN10212239
+
+------------------------------------------------------------
+
+SUMMARY:
+  Total part IDs: 92
+  Consistent patterns (auto-rule-ready): 70
+  Inconsistent patterns (manual review): 22
+
+============================================================
+GENERATING PRODUCT_SERIAL_RULES
+============================================================
+
+// ===== PRODUCT-SPECIFIC SERIAL EXTRACTION RULES =====
+// Generated by analyze_serial_patterns.py based on actual data
+// Maps product codes to specific serial number extraction patterns
+
+const PRODUCT_SERIAL_RULES = {
+    '100752EL': {
+        pattern: /^(\752EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 752EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '100752EW': {
+        pattern: /^(\752EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 752EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100752WKW': {
+        pattern: /^(\752WKN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 752WKN + 5 digits, ignore trailing check digits/padding'
+    },
+    '100756E2': {
+        pattern: /^(\756E\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 756E + 6 digits, ignore trailing check digits/padding'
+    },
+    '100756EL': {
+        pattern: /^(\756EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 756EL + 5 digits, ignore trailing check digits/padding'
+    },
+    // 100756EW: SKIPPED - Inconsistent digit counts: [0, 5]
+    // 100756NW: SKIPPED - Inconsistent digit counts: [5, 6]
+    '100757E2': {
+        pattern: /^(\757E\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 757E + 6 digits, ignore trailing check digits/padding'
+    },
+    // 100757EL: SKIPPED - Inconsistent digit counts: [5, 6]
+    // 100757EN: SKIPPED - Inconsistent digit counts: [5, 6]
+    // 100757EW: SKIPPED - Inconsistent digit counts: [5, 6]
+    '100757NKNW': {
+        pattern: /^(\757NKNW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 757NKNW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100757NW': {
+        pattern: /^(\757NW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 757NW + 5 digits, ignore trailing check digits/padding'
+    },
+    // 100758EL: SKIPPED - Inconsistent digit counts: [5, 6]
+    '100758EW': {
+        pattern: /^(\758EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 758EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100758NKNW': {
+        pattern: /^(\758NKNW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 758NKNW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100758NW': {
+        pattern: /^(\758NW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 758NW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100759E2': {
+        pattern: /^(\759E\d{7}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 759E + 7 digits, ignore trailing check digits/padding'
+    },
+    '100759EL': {
+        pattern: /^(\759EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 759EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '100759ELRN': {
+        pattern: /^(\100759ELRN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 100759ELRN + 5 digits, ignore trailing check digits/padding'
+    },
+    '100759EW': {
+        pattern: /^(\759EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 759EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100759NW': {
+        pattern: /^(\759NW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 759NW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100759WC': {
+        pattern: /^(\759WC\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 759WC + 5 digits, ignore trailing check digits/padding'
+    },
+    // 100760: SKIPPED - No trailing digits found
+    // 100760E: SKIPPED - Inconsistent digit counts: [5, 6]
+    // 100760E2: SKIPPED - Inconsistent digit counts: [6, 7]
+    // 100760EL: SKIPPED - Inconsistent digit counts: [4, 5, 6]
+    // 100760ELN: SKIPPED - Inconsistent digit counts: [5, 6]
+    '100760K': {
+        pattern: /^(\760K\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 760K + 5 digits, ignore trailing check digits/padding'
+    },
+    '100760KN': {
+        pattern: /^(\760KN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 760KN + 5 digits, ignore trailing check digits/padding'
+    },
+    '100780EL': {
+        pattern: /^(\780EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 780EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '100780EW': {
+        pattern: /^(\780EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 780EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100780NKNW': {
+        pattern: /^(\780NKNW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 780NKNW + 5 digits, ignore trailing check digits/padding'
+    },
+    '100780W': {
+        pattern: /^(\780W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 780W + 5 digits, ignore trailing check digits/padding'
+    },
+    // 536713-001: SKIPPED - Inconsistent digit counts: [0, 5, 6]
+    // 536713-002: SKIPPED - Inconsistent digit counts: [0, 5, 6, 7]
+    '536713-002S': {
+        pattern: /^(\MGC2S\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full MGC2S + 6 digits, ignore trailing check digits/padding'
+    },
+    '536713-004': {
+        pattern: /^(\MGC4C\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full MGC4C + 5 digits, ignore trailing check digits/padding'
+    },
+    // 536713-005: SKIPPED - Inconsistent digit counts: [5, 6]
+    // 536719-001: SKIPPED - Inconsistent digit counts: [0, 5, 6]
+    '536719-001S': {
+        pattern: /^(\MGCK1S\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full MGCK1S + 5 digits, ignore trailing check digits/padding'
+    },
+    // 536719-004: SKIPPED - Inconsistent digit counts: [5, 6]
+    // 536723-001: SKIPPED - Inconsistent digit counts: [6, 7]
+    // 756EL: SKIPPED - Inconsistent digit counts: [5, 6]
+    '756EW': {
+        pattern: /^(\R756EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R756EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '756W': {
+        pattern: /^(\R756W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R756W + 5 digits, ignore trailing check digits/padding'
+    },
+    '757E2': {
+        pattern: /^(\R757E\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R757E + 6 digits, ignore trailing check digits/padding'
+    },
+    '757EL': {
+        pattern: /^(\R757EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R757EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '757ELMSN': {
+        pattern: /^(\R757ELMSN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R757ELMSN + 5 digits, ignore trailing check digits/padding'
+    },
+    '757EW': {
+        pattern: /^(\R757EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R757EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '757WM': {
+        pattern: /^(\R757WM\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R757WM + 6 digits, ignore trailing check digits/padding'
+    },
+    '757WMN': {
+        pattern: /^(\R757WMN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R757WMN + 5 digits, ignore trailing check digits/padding'
+    },
+    '758EL': {
+        pattern: /^(\R758EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R758EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '758EW': {
+        pattern: /^(\R758EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R758EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '758W': {
+        pattern: /^(\R758W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R758W + 5 digits, ignore trailing check digits/padding'
+    },
+    '758WM': {
+        pattern: /^(\R758WM\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R758WM + 5 digits, ignore trailing check digits/padding'
+    },
+    '758WMN': {
+        pattern: /^(\R758WMN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R758WMN + 5 digits, ignore trailing check digits/padding'
+    },
+    '759E2': {
+        pattern: /^(\R759E\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R759E + 6 digits, ignore trailing check digits/padding'
+    },
+    '759EL': {
+        pattern: /^(\R759EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R759EL + 5 digits, ignore trailing check digits/padding'
+    },
+    // 759EW: SKIPPED - Inconsistent digit counts: [5, 6]
+    '759WMN': {
+        pattern: /^(\R759WMN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R759WMN + 5 digits, ignore trailing check digits/padding'
+    },
+    '760EL': {
+        pattern: /^(\R760EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R760EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '780EW': {
+        pattern: /^(\R780EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R780EW + 5 digits, ignore trailing check digits/padding'
+    },
+    '790EL': {
+        pattern: /^(\R790EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R790EL + 5 digits, ignore trailing check digits/padding'
+    },
+    '790W': {
+        pattern: /^(\R790W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full R790W + 5 digits, ignore trailing check digits/padding'
+    },
+    '7EW1': {
+        pattern: /^(\EBS757EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full EBS757EW + 5 digits, ignore trailing check digits/padding'
+    },
+    'EBS756NW': {
+        pattern: /^(\EBS756NW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full EBS756NW + 5 digits, ignore trailing check digits/padding'
+    },
+    'EBS757EW': {
+        pattern: /^(\EBS757EW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full EBS757EW + 5 digits, ignore trailing check digits/padding'
+    },
+    'EBS757NW': {
+        pattern: /^(\EBS757NW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full EBS757NW + 5 digits, ignore trailing check digits/padding'
+    },
+    'EBS759EL': {
+        pattern: /^(\EBS759EL\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full EBS759EL + 5 digits, ignore trailing check digits/padding'
+    },
+    'EBS780NW': {
+        pattern: /^(\EBS780NW\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full EBS780NW + 5 digits, ignore trailing check digits/padding'
+    },
+    'FIL7958': {
+        pattern: /^(\FIL\d{9}).*$/,
+        extractGroup: 1,
+        description: 'Extract full FIL + 9 digits, ignore trailing check digits/padding'
+    },
+    // P55541001: SKIPPED - No trailing digits found
+    'P5554100E': {
+        pattern: /^(\4100E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 4100E + 5 digits, ignore trailing check digits/padding'
+    },
+    // P5556100: SKIPPED - No trailing digits found
+    'P5556100E': {
+        pattern: /^(\6100E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 6100E + 5 digits, ignore trailing check digits/padding'
+    },
+    'P5556100E1': {
+        pattern: /^(\6100E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 6100E + 5 digits, ignore trailing check digits/padding'
+    },
+    'P5557100E': {
+        pattern: /^(\7100E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 7100E + 5 digits, ignore trailing check digits/padding'
+    },
+    'P5559100E': {
+        pattern: /^(\9100E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 9100E + 5 digits, ignore trailing check digits/padding'
+    },
+    'PFR60W': {
+        pattern: /^(\PFR60W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR60W + 5 digits, ignore trailing check digits/padding'
+    },
+    'PFR60WE2': {
+        pattern: /^(\PFR60WE\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR60WE + 6 digits, ignore trailing check digits/padding'
+    },
+    'PFR60WK': {
+        pattern: /^(\PFR60WK\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR60WK + 5 digits, ignore trailing check digits/padding'
+    },
+    'PFR70W': {
+        pattern: /^(\PFR70W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR70W + 5 digits, ignore trailing check digits/padding'
+    },
+    // PFR70WE2N: SKIPPED - Inconsistent digit counts: [0, 5]
+    'PFR80W': {
+        pattern: /^(\PFR80W\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR80W + 5 digits, ignore trailing check digits/padding'
+    },
+    'PFR80WE2': {
+        pattern: /^(\PFR80WE\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR80WE + 6 digits, ignore trailing check digits/padding'
+    },
+    'PFR80WKN': {
+        pattern: /^(\PFR80WKN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR80WKN + 5 digits, ignore trailing check digits/padding'
+    },
+    'PFR80WN': {
+        pattern: /^(\PFR80WN\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR80WN + 5 digits, ignore trailing check digits/padding'
+    },
+    'PFR8WE2': {
+        pattern: /^(\PFR8WE\d{6}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR8WE + 6 digits, ignore trailing check digits/padding'
+    },
+    'PFR8WK': {
+        pattern: /^(\PFR8WK\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PFR8WK + 5 digits, ignore trailing check digits/padding'
+    },
+    'PUL9000K': {
+        pattern: /^(\PUL9000K\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full PUL9000K + 5 digits, ignore trailing check digits/padding'
+    },
+    'TNN102': {
+        pattern: /^(\TNN\d{8}).*$/,
+        extractGroup: 1,
+        description: 'Extract full TNN + 8 digits, ignore trailing check digits/padding'
+    },
+};
+
+// ===== MANUAL REVIEW REQUIRED =====
+// Parts with inconsistent patterns (verify correct digit count):
+//
+// 100756EW:
+//   Total records: 31
+//   Digit counts found: [0, 5]
+//   Most common: 5 digits
+//   Unique prefixes: 2
+//   Examples: 756EW15410, 756EW15411, 756EW15412
+//
+// 100756NW:
+//   Total records: 87
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 756NW15257, 756NW15258, 756NW15235
+//
+// 100757EL:
+//   Total records: 30
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 757EL12421, 757EL12407, 757EL12414
+//
+// 100757EN:
+//   Total records: 11
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 757EN112025, 757EN112036, 757EN11204
+//
+// 100757EW:
+//   Total records: 79
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 757EW24824, 757EW24825, 757EW24826
+//
+// 100758EL:
+//   Total records: 13
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 758EL11421, 758EL11420, 758EL11422
+//
+// 100760:
+//   Total records: 4
+//   Digit counts found: [0]
+//   Most common: 0 digits
+//   Unique prefixes: 1
+//   Examples: 76012641, 76012642, 76012643
+//
+// 100760E:
+//   Total records: 24
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 760E13274, 760E13272, 760E13273
+//
+// 100760E2:
+//   Total records: 9
+//   Digit counts found: [6, 7]
+//   Most common: 6 digits
+//   Unique prefixes: 1
+//   Examples: 760E210722, 760E210723, 760E2107152
+//
+// 100760EL:
+//   Total records: 15
+//   Digit counts found: [4, 5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 760EL12507, 760EL12508, 760EL12509
+//
+// 100760ELN:
+//   Total records: 11
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: 760ELN10291, 760ELN10292, 760ELN10293
+//
+// 536713-001:
+//   Total records: 43
+//   Digit counts found: [0, 5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 4
+//   Examples: MGC1S17774, MGC1S17760, MGC1S17761
+//
+// 536713-002:
+//   Total records: 682
+//   Digit counts found: [0, 5, 6, 7]
+//   Most common: 6 digits
+//   Unique prefixes: 7
+//   Examples: MGC2S104117, MGC2S104118, MGC2S103972
+//
+// 536713-005:
+//   Total records: 52
+//   Digit counts found: [5, 6]
+//   Most common: 6 digits
+//   Unique prefixes: 2
+//   Examples: MGC512175, MGC512176, MGC512177
+//
+// 536719-001:
+//   Total records: 1774
+//   Digit counts found: [0, 5, 6]
+//   Most common: 6 digits
+//   Unique prefixes: 8
+//   Examples: MGCK173132, MGCK173133, MGCK173137
+//
+// 536719-004:
+//   Total records: 8
+//   Digit counts found: [5, 6]
+//   Most common: 6 digits
+//   Unique prefixes: 2
+//   Examples: MGCK365005, MGCK365001, MGCK365006
+//
+// 536723-001:
+//   Total records: 238
+//   Digit counts found: [6, 7]
+//   Most common: 7 digits
+//   Unique prefixes: 2
+//   Examples: MGCK2S114312, MGCK2S114313, MGCK2114212
+//
+// 756EL:
+//   Total records: 30
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: R756EL11978, R756EL11979, R756EL11980
+//
+// 759EW:
+//   Total records: 15
+//   Digit counts found: [5, 6]
+//   Most common: 5 digits
+//   Unique prefixes: 1
+//   Examples: R759EW12116, R759EW12117, R759EW12118
+//
+// P55541001:
+//   Total records: 2
+//   Digit counts found: [0]
+//   Most common: 0 digits
+//   Unique prefixes: 1
+//   Examples: 410013027, 410013028
+//
+// P5556100:
+//   Total records: 1
+//   Digit counts found: [0]
+//   Most common: 0 digits
+//   Unique prefixes: 1
+//   Examples: 61001263
+//
+// PFR70WE2N:
+//   Total records: 4
+//   Digit counts found: [0, 5]
+//   Most common: 5 digits
+//   Unique prefixes: 2
+//   Examples: PFR70WE2N10967, PFR70WE2N10968, PFR70WE2N10971
+//
+
+Rules saved to: product_rules_generated.js
+
+Next steps:
+  1. Review the generated rules in product_rules_generated.js
+  2. Manually review inconsistent parts (marked with // SKIPPED)
+  3. Copy the consistent rules to app.js PRODUCT_SERIAL_RULES
+

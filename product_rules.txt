@@ -1,0 +1,4 @@
+  File "<string>", line 47
+    escaped = prefix.replace('\', '\\')
+                                    ^
+SyntaxError: unexpected character after line continuation character
