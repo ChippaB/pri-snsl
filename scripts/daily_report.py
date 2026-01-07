@@ -1279,15 +1279,138 @@ def backup_to_google_sheets(scans: list, report_date: datetime):
 
 
 def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Daily Build Report Generator")
+    parser.add_argument("date", nargs="?", help="Report date (YYYY-MM-DD)")
+    parser.add_argument("--test", action="store_true", help="Test mode (no email)")
+    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
+    args = parser.parse_args()
+    
+    test_mode = args.test
+    info_mode = args.info
+    
+    if info_mode:
+        # Just show info, don't process
+        print("
+" + "="*70)
+        print("DAILY REPORT - DIAGNOSTIC INFO")
+        print("="*70)
+        print()
+        print(f"Current Local Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        print(f"Target Date: {args.date if args.date else 'yesterday'}")
+        print()
+        print("Time Zone Info:")
+        print("  - EST (US Eastern) = UTC-5")
+        print("  - During Standard Time: UTC-4")
+        print("  - During Daylight Saving Time: UTC-4")
+        print()
+        print("Date Query Logic:")
+        print("  - When 'yesterday' is specified:")
+        print("    1. Parses date as YYYY-MM-DD")
+        print("    2. Sets time to 00:00:00 (midnight)")
+        print("    3. Converts to EST using: timedelta(hours=-5)")
+        print("    4. Queries UTC range: (date 00:00:00 to next day 05:00:00)")
+        print("       This equals: (date 00:00:00 to next day 05:00:00 EST)")
+        print("       So you get full 24 hours of that date (00:00:00 to 23:59:59 EST)")
+        print()
+        print("Note: This -5 hour adjustment works if your system is in EST.")
+        print("      If your system is in a different time zone, scans may be misaligned.")
+        sys.exit(0)
+def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Daily Build Report Generator")
+    parser.add_argument("date", nargs="?", help="Report date (YYYY-MM-DD)")
+    parser.add_argument("--test", action="store_true", help="Test mode (no email)")
+    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
+    args = parser.parse_args()
+    
+    test_mode = args.test
+    info_mode = args.info
+    
+    if info_mode:
+        # Just show info, don't process
+        print("
+" + "="*70)
+        print("DAILY REPORT - DIAGNOSTIC INFO")
+        print("="*70)
+        print()
+        print(f"Current Local Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        print(f"Target Date: {args.date if args.date else 'yesterday'}")
+        print()
+        print("Time Zone Info:")
+        print("  - EST (US Eastern) = UTC-5")
+        print("  - During Standard Time: UTC-4")
+        print("  - During Daylight Saving Time: UTC-4")
+        print()
+        print("Date Query Logic:")
+        print("  - When 'yesterday' is specified:")
+        print("    1. Parses date as YYYY-MM-DD")
+        print("    2. Sets time to 00:00:00 (midnight)")
+        print("    3. Converts to EST using: timedelta(hours=-5)")
+        print("    4. Queries UTC range: (date 00:00:00 to next day 05:00:00)")
+        print("       This equals: (date 00:00:00 to next day 05:00:00 EST)")
+        print("       So you get full 24 hours of that date (00:00:00 to 23:59:59 EST)")
+        print()
+        print("Note: This -5 hour adjustment works if your system is in EST.")
+        print("      If your system is in a different time zone, scans may be misaligned.")
+        sys.exit(0)
+    
+    if args.date:
+        try:
+            target_date = datetime.strptime(args.date, "%Y-%m-%d")
+        except ValueError:
+            print(f"[ERROR] Invalid date format: {args.date}. Use YYYY-MM-DD")
+            sys.exit(1)
+    else:
+        target_date = datetime.now() - timedelta(days=1)
+def main():
     """Main entry point"""
     import argparse
 
     parser = argparse.ArgumentParser(description="Daily Build Report Generator")
     parser.add_argument("date", nargs="?", help="Report date (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="Test mode (no email)")
-    args = parser.parse_args()
-
+    parser.add_argument("--test", action="store_true", help="Test mode (no email)")
+    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
+    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
     test_mode = args.test
+    info_mode = args.info
+    args = parser.parse_args()
+    
+    test_mode = args.test
+    info_mode = args.info
+    
+    if info_mode:
+        # Just show info, don't process
+        print("\n" + "="*70)
+        print("DAILY REPORT - DIAGNOSTIC INFO")
+        print("="*70)
+        print()
+        print(f"Current Local Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        print(f"Target Date: {args.date if args.date else 'yesterday'}")
+        print()
+        print("Time Zone Info:")
+        print("  - EST (US Eastern) = UTC-5")
+        print("  - During Standard Time: UTC-4")
+        print("  - During Daylight Saving Time: UTC-4")
+        print()
+        print("Date Query Logic:")
+        print("  - When 'yesterday' is specified:")
+        print("    1. Parses date as YYYY-MM-DD")
+        print("    2. Sets time to 00:00:00 (midnight)")
+        print("    3. Converts to EST using: timedelta(hours=-5)")
+        print("    4. Queries UTC range: (date 00:00:00 to next day 00:00:00)")
+        print("       This equals: (date 00:00:00 to next day 05:00:00 EST)")
+        print("       So you get full 24 hours of that date (00:00:00 to 23:59:59 EST)")
+        print()
+        print("Note: This -5 hour adjustment works if your system is in EST.")
+        print("      If your system is in a different time zone, scans may be misaligned.")
+        sys.exit(0)
+    
+    if args.date:
+
     if args.date:
         try:
             target_date = datetime.strptime(args.date, "%Y-%m-%d")
