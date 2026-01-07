@@ -1,5 +1,6 @@
-# Excel exports
+# Excel exports (including output folder)
 *.xlsx
+output/
 
 # Python cache
 __pycache__/
