@@ -26,7 +26,13 @@ self.addEventListener('fetch', event => {
         url.hostname.includes('api.') ||
         event.request.method !== 'GET') {
         // Network only for API calls - bypass cache entirely
-        event.respondWith(fetch(event.request));
+        event.respondWith(
+            fetch(event.request).catch(error => {
+                // Return network error response on failure (offline, network issues)
+                console.error('Network request failed:', event.request.url, error);
+                return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
+            })
+        );
         return;
     }
 
