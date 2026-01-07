@@ -131,7 +131,7 @@
             <ul class="checklist">
                 <li><strong>Close</strong> all tabs running the scanning app</li>
                 <li><strong>Open</strong> the scanning app again</li>
-                <li><strong>Check</strong> version badge shows <strong>v8.6.5</strong></li>
+                <li><strong>Check</strong> version badge shows <strong>v8.6.6</strong></li>
                 <li>Test your barcode: <code>+B446PUL9000K0/$+PUL9000K296890</code></li>
                 <li><strong>Verify</strong> serial number is saved as <strong>PUL9000K29689</strong></li>
             </ul>
@@ -140,7 +140,7 @@
         <div class="note">
             <strong>💡 Why This Happens:</strong><br>
             Browsers aggressively cache JavaScript files. Even after updating the version number, the old file can stay cached for days.<br><br>
-            The old v8.6.5 Fix: <code>Product-specific extraction rules ensure PUL9000K saves exactly 5 digits after 'K'.</code><br>
+            The old v8.6.6 Fix: <code>Product-specific extraction rules ensure PUL9000K saves exactly 5 digits after 'K'.</code><br>
             This incorrectly strips the '0' from your barcode!
         </div>
         
