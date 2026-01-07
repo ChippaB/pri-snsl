@@ -7,21 +7,21 @@ This happens because:
 1. Browsers cache JavaScript aggressively
 2. Even with cache version bump, old files can stay in cache
 3. Service worker may serve cached app.js even after new deployment
-4. PUL9000K serials with check digits need v8.6.5+ to extract correctly
+4. PUL9000K serials with check digits need v8.6.6+ to extract correctly
 
-### What v8.6.5 Fixes
+### What v8.6.6 Fixes
 
-**Before (v8.6.4 and earlier):**
+**Before (v8.6.5 and earlier):**
 - Raw barcode: `+B446PUL9000K0/$+PUL9000K296890`
-- Saved: `PUL9000K296890` ❌ (includes trailing '0' check digit)
+- Saved: `29689` ❌ (only digits, missing PUL9000K prefix)
 
-**After (v8.6.5):**
+**After (v8.6.6):**
 - Raw barcode: `+B446PUL9000K0/$+PUL9000K296890`
-- Saved: `PUL9000K29689` ✅ (exactly 5 digits, check digit ignored)
+- Saved: `PUL9000K29689` ✅ (includes part prefix + 5 digits, check digit ignored)
 
-### New Product-Specific Rules System
+### Product-Specific Rules System
 
-v8.6.5 introduces `PRODUCT_SERIAL_RULES` configuration that allows targeted handling of problematic barcodes:
+v8.6.5 introduced `PRODUCT_SERIAL_RULES` configuration that allows targeted handling of problematic barcodes:
 - PUL9000K: Extract exactly 5 digits after 'K', ignore trailing check digits/padding
 - Easy to add new product rules without changing parsing logic
 - Non-matching products pass through unchanged
@@ -56,15 +56,15 @@ v8.6.5 introduces `PRODUCT_SERIAL_RULES` configuration that allows targeted hand
 
 After clearing cache, check:
 1. Look at version badge in top-right corner
-2. Should show: **v8.6.5** (current version)
+2. Should show: **v8.6.6** (current version)
 3. Test barcode: `+B446PUL9000K0/$+PUL9000K296890`
-4. Verify serial saved as: `PUL9000K29689` (exactly 5 digits)
+4. Verify serial saved as: `PUL9000K29689` (includes part prefix + 5 digits)
 
 ## If Problem Persists
 
 If cache clear doesn't work, check:
-1. Version badge shows v8.6.5
-2. But PUL9000K serials still include trailing digits
+1. Version badge shows v8.6.6
+2. But PUL9000K serials don't include part prefix
 3. Check browser Console for errors
 
 This may indicate:

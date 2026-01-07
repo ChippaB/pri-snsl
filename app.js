@@ -2,6 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.6.6: PUL9000K serial extraction includes part prefix (PUL9000K29689, not just 29689)
 // v8.6.5: Product-specific serial extraction rules (PUL9000K = 5 digits, ignores trailing check digits/padding)
 // v8.6.4: Fixed HIBC check digit stripping for mixed barcode formats (6-digit serials + check digit ambiguity)
 // v8.6.3: HIBC check digit validation and MGC S/C assignment fixes
@@ -977,7 +978,7 @@ function parsePN_SN(s) {
             }
         }
 
-        // Apply product-specific serial extraction rules (v8.6.5)
+        // Apply product-specific serial extraction rules (v8.6.6)
         // This handles cases like PUL9000K where we need to extract exactly N digits after prefix
         const extractedSerial = applyProductSpecificSerialExtraction(p, sNum);
 

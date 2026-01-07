@@ -1,5 +1,5 @@
 /**
- * Test for Product-Specific Serial Extraction (v8.6.5)
+ * Test for Product-Specific Serial Extraction (v8.6.6)
  * Tests the PRODUCT_SERIAL_RULES system for targeted serial number extraction
  */
 
