@@ -5,9 +5,9 @@
 
 const PRODUCT_SERIAL_RULES = {
     'PUL9000K': {
-        pattern: /^PUL9000K(\d{5}).*$/,
+        pattern: /^(PUL9000K\d{5}).*$/,
         extractGroup: 1,
-        description: 'Extract 5 digits after PUL9000K, ignore trailing check digits/padding'
+        description: 'Extract full PUL9000K + 5 digits, ignore trailing check digits/padding'
     }
 };
 
@@ -27,11 +27,11 @@ function applyProductSpecificSerialExtraction(partCode, serial) {
 }
 
 const tests = [
-    // PUL9000K patterns - should extract exactly 5 digits
-    { part: 'PUL9000K', input: 'PUL9000K29689', expected: '29689', desc: 'PUL9000K with exactly 5 digits' },
-    { part: 'PUL9000K', input: 'PUL9000K296890', expected: '29689', desc: 'PUL9000K with trailing 0 (check digit)' },
-    { part: 'PUL9000K', input: 'PUL9000K123456', expected: '12345', desc: 'PUL9000K with extra trailing digit' },
-    { part: 'PUL9000K', input: 'PUL9000K99999F', expected: '99999', desc: 'PUL9000K with letter check digit' },
+    // PUL9000K patterns - should extract full PUL9000K + 5 digits
+    { part: 'PUL9000K', input: 'PUL9000K29689', expected: 'PUL9000K29689', desc: 'PUL9000K with exactly 5 digits' },
+    { part: 'PUL9000K', input: 'PUL9000K296890', expected: 'PUL9000K29689', desc: 'PUL9000K with trailing 0 (check digit)' },
+    { part: 'PUL9000K', input: 'PUL9000K123456', expected: 'PUL9000K12345', desc: 'PUL9000K with extra trailing digit' },
+    { part: 'PUL9000K', input: 'PUL9000K99999F', expected: 'PUL9000K99999', desc: 'PUL9000K with letter check digit' },
 
     // Non-matching product - should pass through unchanged
     { part: 'MGC1S', input: 'MGC1S17754', expected: 'MGC1S17754', desc: 'MGC1S - no rule, pass through' },

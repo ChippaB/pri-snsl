@@ -66,13 +66,13 @@ const BARCODE_VALIDATION = {
 // This allows targeted handling of problematic barcodes with check digits, padding, etc.
 const PRODUCT_SERIAL_RULES = {
     'PUL9000K': {
-        pattern: /^PUL9000K(\d{5}).*$/,
+        pattern: /^(PUL9000K\d{5}).*$/,
         extractGroup: 1,
-        description: 'Extract 5 digits after PUL9000K, ignore trailing check digits/padding'
+        description: 'Extract full PUL9000K + 5 digits, ignore trailing check digits/padding'
     }
     // Add more products here as needed:
     // 'ABC123': {
-    //     pattern: /^ABC123(\d{4}).*$/,
+    //     pattern: /^(ABC123\d{4}).*$/,
     //     extractGroup: 1
     // }
 };
