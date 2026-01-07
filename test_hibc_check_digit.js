@@ -24,8 +24,8 @@ function stripCheckDigit(sNum) {
             const lastLetterPos = sNum.lastIndexOf(lastLetter);
             const trailingChars = sNum.substring(lastLetterPos + 1);
 
-            // Only strip if we have >5 trailing chars (leaves 5+ after strip)
-            if (trailingChars.length > 5) {
+            // Only strip if we have >6 trailing chars (leaves 6+ after strip)
+            if (trailingChars.length > 6) {
                 return sNum.substring(0, sNum.length - 1);
             }
         } else {
@@ -47,17 +47,24 @@ const tests = [
     // All-numeric serials - last digit stripped (assumed check digit)
     { input: '1234567890', expected: '123456789', desc: 'Pure numeric - last digit stripped' },
 
-    // Alphanumeric with >5 trailing digits - last digit stripped
+    // Alphanumeric with >6 trailing digits - last digit stripped
     { input: '760E2107185', expected: '760E210718', desc: 'Alphanumeric with 7 trailing digits - digit stripped (6 remain)' },
-    { input: '757EN112036', expected: '757EN11203', desc: 'Alphanumeric with 6 trailing digits - digit stripped (5 remain)' },
+
+    // Alphanumeric with 6 trailing digits - NOT stripped (could be 6-digit serial or 5+check)
+    { input: '757EN112036', expected: '757EN112036', desc: 'Alphanumeric with 6 trailing digits - NOT stripped (keep)' },
+    { input: 'R757WM102694', expected: 'R757WM102694', desc: '6-digit serial, no check digit - NOT stripped' },
+    { input: 'R757WM102698', expected: 'R757WM102698', desc: '6-digit serial, no check digit - NOT stripped' },
 
     // Alphanumeric with ≤5 trailing digits - NOT stripped
     { input: 'R757WM10269', expected: 'R757WM10269', desc: 'Exactly 5 trailing digits - NOT stripped' },
     { input: 'MGC1S17754', expected: 'MGC1S17754', desc: '5 trailing digits - NOT stripped' },
 
-    // NOTE: R757WM102694 (6 trailing digits, ends in '4') would be stripped to R757WM10269
-    // BUT: This barcode will be REJECTED at validation stage (before parsing) because
-    // R757WM barcodes must end with letter/special char, not digit (see app.js:745-756)
+    // Alphanumeric with 7 trailing digits (6-digit serial + check digit) - stripped
+    { input: 'R757WM1026990', expected: 'R757WM102699', desc: '6-digit serial with check digit 0 - stripped' },
+
+    // Note: 757EW248480 (757EW + 5-digit serial + 0 check digit) has 6 trailing digits
+    // With >6 rule, it will NOT be stripped (treated as 6-digit serial without check digit)
+    // This matches 757EN112036 behavior
 
     // Edge cases
     { input: 'A', expected: 'A', desc: 'Single char - not stripped' },

@@ -742,18 +742,6 @@ function validateRawBarcode(rawScan) {
         return { valid: false, reason: 'Unknown barcode format' };
     }
 
-    // HIBC-specific validation: Require non-digit check digit for R757WM serials
-    if (isHIBC && cleaned.includes('R757WM')) {
-        // R757WM serials must end with a letter or special char, not a digit
-        // This prevents malformed barcodes without check digits from entering system
-        const lastChar = cleaned.charAt(cleaned.length - 1);
-        if (/^[0-9]$/.test(lastChar)) {
-            return {
-                valid: false,
-                reason: 'R757WM barcode must end with letter/special char check digit (not digit)'
-            };
-        }
-    }
 
     // Format-specific validation
     if (isGS1 && cleaned.length < BARCODE_VALIDATION.FORMATS.GS1_128.minLength) {
@@ -924,8 +912,8 @@ function parsePN_SN(s) {
                     const lastLetterPos = sNum.lastIndexOf(lastLetter);
                     const trailingChars = sNum.substring(lastLetterPos + 1);
 
-                    // Only strip if we have >5 trailing chars (leaves 5+ after strip)
-                    if (trailingChars.length > 5) {
+                    // Only strip if we have >6 trailing chars (leaves 6+ after strip)
+                    if (trailingChars.length > 6) {
                         sNum = sNum.substring(0, sNum.length - 1);
                     }
                 } else {
