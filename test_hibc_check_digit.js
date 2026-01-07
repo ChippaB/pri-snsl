@@ -1,9 +1,9 @@
 /**
- * Test for HIBC Check Digit Validation Fix (v8.6.3)
+ * Test for HIBC Check Digit Validation Fix (v8.6.4)
  * Tests that check digits are only stripped when they are valid HIBC characters
  */
 
-// Simulate the check digit stripping logic (v8.6.3)
+// Simulate the check digit stripping logic (v8.6.4)
 function stripCheckDigit(sNum) {
     if (sNum.length <= 1) return sNum;
 

@@ -2,6 +2,8 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.6.4: Fixed HIBC check digit stripping for mixed barcode formats (6-digit serials + check digit ambiguity)
+// v8.6.3: HIBC check digit validation and MGC S/C assignment fixes
 // v8.6.2: Fixed service worker dashboard timeout (API calls now bypass cache)
 // v8.6.1: Fixed 100780W parsing (legacy label fix for +B4461007801 barcodes)
 // v8.6.0: Client-side barcode validation - rejects malformed scans BEFORE they reach the database (fail-fast)
@@ -882,7 +884,7 @@ function parsePN_SN(s) {
             if (sNum.startsWith('+')) sNum = sNum.substring(1);
         }
 
-        // HIBC Check Digit Stripping (v8.6.3):
+        // HIBC Check Digit Stripping (v8.6.4):
         // HIBC standard: Serial format is PART_PREFIX + 5-DIGIT-SERIAL + CHECK_DIGIT
         // Examples:
         //   760E2 + 10718 + 5 = 760E2107185 → strip 5 → 760E210718 (6 digits remain)
