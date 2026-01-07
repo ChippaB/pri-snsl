@@ -1152,6 +1152,10 @@
                 <label>Notes</label>
                 <input type="text" id="editNotes" placeholder="Dashboard notes">
             </div>
+            <div class="form-group" id="datetimeGroup">
+                <label>Date/Time</label>
+                <input type="datetime-local" id="editDateTime" step="1">
+            </div>
 
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeRecordModal()">Cancel</button>
@@ -1935,6 +1939,7 @@
             document.getElementById('editStation').value = scan.station_id || '';
             document.getElementById('editComment').value = scan.batch_comment || '';
             document.getElementById('editNotes').value = scan.dashboard_notes || '';
+            document.getElementById('datetimeGroup').style.display = 'none';
 
             document.getElementById('recordModal').style.display = 'flex';
         }
@@ -1951,6 +1956,13 @@
             document.getElementById('editStation').value = '';
             document.getElementById('editComment').value = '';
             document.getElementById('editNotes').value = '';
+            document.getElementById('datetimeGroup').style.display = 'block';
+            
+            const now = new Date();
+            now.setSeconds(0, 0);
+            const offset = now.getTimezoneOffset() * 60000;
+            const localISOTime = new Date(now - offset).toISOString().slice(0, 16);
+            document.getElementById('editDateTime').value = localISOTime;
 
             document.getElementById('recordModal').style.display = 'flex';
         }
@@ -1991,7 +2003,11 @@
 
                     if (error) throw error;
                 } else {
-                    // Insert new record
+                    // Insert new record with custom created_at
+                    const dateTimeValue = document.getElementById('editDateTime').value;
+                    if (dateTimeValue) {
+                        recordData.created_at = new Date(dateTimeValue).toISOString();
+                    }
                     const { error } = await supabaseClient
                         .from('scans')
                         .insert([recordData]);
