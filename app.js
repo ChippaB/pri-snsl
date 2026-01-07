@@ -2,6 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.6.5: Product-specific serial extraction rules (PUL9000K = 5 digits, ignores trailing check digits/padding)
 // v8.6.4: Fixed HIBC check digit stripping for mixed barcode formats (6-digit serials + check digit ambiguity)
 // v8.6.3: HIBC check digit validation and MGC S/C assignment fixes
 // v8.6.2: Fixed service worker dashboard timeout (API calls now bypass cache)
@@ -58,6 +59,22 @@ const BARCODE_VALIDATION = {
     // NOTE: % is VALID for HIBC check digits (Mod 43), so it's excluded
     // Valid HIBC check chars: 0-9, A-Z, and special chars: - . $ / + %
     SUSPICIOUS_CHARS: /[*#@!~`^&()={}|[\]<>;:'"]/
+};
+
+// ===== PRODUCT-SPECIFIC SERIAL EXTRACTION RULES =====
+// Maps product codes to specific serial number extraction patterns
+// This allows targeted handling of problematic barcodes with check digits, padding, etc.
+const PRODUCT_SERIAL_RULES = {
+    'PUL9000K': {
+        pattern: /^PUL9000K(\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract 5 digits after PUL9000K, ignore trailing check digits/padding'
+    }
+    // Add more products here as needed:
+    // 'ABC123': {
+    //     pattern: /^ABC123(\d{4}).*$/,
+    //     extractGroup: 1
+    // }
 };
 
 // ===== OFFLINE QUEUE (IndexedDB) =====
@@ -833,6 +850,29 @@ function extractPartFromSerial(serial) {
     return null;
 }
 
+/**
+ * Apply product-specific serial number extraction rules.
+ * This handles cases where certain products have specific patterns (e.g., fixed digit count after prefix).
+ * @param {string} partCode - The part number code (e.g., 'PUL9000K')
+ * @param {string} serial - The serial number extracted from barcode
+ * @returns {string} - The extracted serial number (or original if no rule applies)
+ */
+function applyProductSpecificSerialExtraction(partCode, serial) {
+    if (!partCode || !serial) return serial;
+
+    const rule = PRODUCT_SERIAL_RULES[partCode];
+    if (!rule) return serial;
+
+    const match = serial.match(rule.pattern);
+    if (match && match[rule.extractGroup]) {
+        const extracted = match[rule.extractGroup];
+        console.log(`📋 Product Rule Applied: ${partCode} → "${serial}" → "${extracted}"`);
+        return extracted;
+    }
+
+    return serial;
+}
+
 function parsePN_SN(s) {
     const raw = String(s).toUpperCase().trim();
 
@@ -937,7 +977,11 @@ function parsePN_SN(s) {
             }
         }
 
-        return sectionResult(p, sNum);
+        // Apply product-specific serial extraction rules (v8.6.5)
+        // This handles cases like PUL9000K where we need to extract exactly N digits after prefix
+        const extractedSerial = applyProductSpecificSerialExtraction(p, sNum);
+
+        return sectionResult(p, extractedSerial);
     }
 
     return { part: '', serial: '' };
