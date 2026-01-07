@@ -118,11 +118,40 @@ python test_mgc_suffix.py
 - Uses the first serial's header to determine suffix
 - Applies same logic consistently across all MGC variants
 
+### Implementation Status
+
+✅ **COMPLETED** - Code implemented in commit `214eaa4`
+
 ### Verification
 
-To verify the fix is working:
+Test script created: `scripts/test_mgc_suffix.py`
+
+**Run tests:**
+```bash
+cd scripts
+python test_mgc_suffix.py
+```
+
+**Test Results:**
+- ✅ MGC1S17775 → Adds 'S' suffix
+- ✅ MGC2C10800 → Adds 'C' suffix
+- ✅ MGCK1S58198 → Adds 'S' suffix
+- ✅ MGCK2S14399 → Adds 'S' suffix
+- ✅ 536713-001S → Adds 'S' suffix (was working)
+- ✅ 536723-001S → Adds 'S' suffix (was working)
+- ✅ 536789-001 → Now adds 'S' suffix (was failing before!)
+- ✅ 536999-001 → Adds 'S' suffix (new part, works correctly)
+
+### Files Changed
+
+- `scripts/daily_report.py` - Updated apply_part_number_variant() function (lines 251-256)
+  - Changed: `part.startswith('536')` → `part.startswith('MGC')`
+  - Removed: eligible_parts list restriction
+  - Updated: Comment to say "ALL MGC part numbers automatically"
+
+To verify fix is working:
 
 1. Run `python quick_report.py` for a date with MGC serials
 2. Open the generated `QB_Build_Assembly_MM-DD-YYYY.xlsx` file
-3. Check that MGC part numbers have S or C suffix in Column C
+3. Check that MGC part numbers have S or C suffix in Column C (Column: "Inventory Assembly Item")
 4. Verify that new part numbers (like 536789-001) now get suffixes
