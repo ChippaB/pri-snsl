@@ -99,11 +99,11 @@ def generate_javascript_rules(rules):
         prefix = rule["prefix"]
         total = rule["total_records"]
 
-        # Escape backslashes for JavaScript regex
+        # Escape backslashes for JavaScript regex (if any exist in prefix)
         escaped_prefix = prefix.replace("\\", "\\\\")
 
         lines.append(f"    '{pid}': {{")
-        lines.append(f"        pattern: /^(\\\\{escaped_prefix}\\d{{{count}}}).*$$/$,")
+        lines.append(f"        pattern: /^({escaped_prefix}\\d{{{count}}}).*$/,")
         lines.append(f"        extractGroup: 1,")
         lines.append(
             f"        description: 'Extract full {prefix} + {count} digits ({total:,} records), ignore trailing check digits/padding'"
