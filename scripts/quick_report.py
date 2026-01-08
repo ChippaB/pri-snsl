@@ -140,13 +140,13 @@ def main():
 
         if copied_files:
             print(f"\n{'=' * 60}")
-            print(f"✅ SUCCESS! {len(copied_files)} file(s) copied to output/")
+            print(f"SUCCESS! {len(copied_files)} file(s) copied to output/")
             print(f"{'=' * 60}\n")
             print(f"Generated files:")
             for filename in copied_files:
                 print(f"   - {filename}")
-            print(f"\n📁 Location: {os.path.abspath(output_dir)}")
-            print(f"\n💡 Tip: Open the files from here to review before using")
+            print(f"\nLocation: {os.path.abspath(output_dir)}")
+            print(f"\nTip: Open the files from here to review before using")
         else:
             print("\n[WARN] No output files found. This could mean:")
             print("   1. No scans for this date")

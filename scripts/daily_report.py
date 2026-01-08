@@ -211,7 +211,14 @@ def extract_serial_header(serial: str) -> str:
     if len(target) <= 5:
         return target or "UNKNOWN"
 
-    # Take everything except last 5 characters
+    # Special handling for MGC serials: extract header before the trailing 5+ digits
+    # MGC formats: MGC + digits/K + S/C + 5+ digits
+    # Examples: MGC1S17775, MGC2C20297, MGCK1S58198, MGC2S104310
+    mgc_match = re.match(r"^(MGC[0-9K]*[SC])(\d{5,})$", target, re.IGNORECASE)
+    if mgc_match:
+        return mgc_match.group(1)  # Return everything before the trailing 5+ digits
+
+    # Default: Take everything except last 5 characters
     return target[:-5]
 
 
@@ -248,32 +255,32 @@ def apply_part_number_variant(part: str, serials: list) -> str:
     if part.startswith("PFR"):
         part = f"301-{part}"
 
-    # Rule 2: Add MGC variant suffix for MGC parts (any part number starting with MGC)
-    # Detects ANY MGC serial and applies S/C suffix based on serial header pattern
+    # Rule 2: Add MGC variant suffix based on serial header pattern
+    # Checks if ANY serial starts with "MGC" and has S/C in header (ignoring first 3 chars)
     # Examples:
     #   - MGC1S17775 (header: MGC1S) -> append 'S' -> '536713-001S'
     #   - MGC2C10800 (header: MGC2C) -> append 'C' -> '536713-002C'
     #   - MGCK1S58198 (header: MGCK1S) -> append 'S' -> '536719-001S'
     #   - MGCK2S14399 (header: MGCK2S) -> append 'S' -> '536723-001S'
     # Ignores first 3 chars "MGC", then looks for S or C at the end
-    # This handles ALL MGC part numbers automatically (not just 536xxx)
-    if part.startswith("MGC") and not (part.endswith("S") or part.endswith("C")):
-        # Check all serials to determine variant
-        # We'll use the first serial's header as the determinant
+    # This handles ALL parts with MGC serials (not just MGC part numbers)
+    if not (part.endswith("S") or part.endswith("C")):
+        # Check all serials to determine if any is MGC format
         if serials:
-            first_serial = str(serials[0])
+            for serial in serials:
+                serial_str = str(serial)
+                if serial_str.startswith("MGC"):
+                    # Extract the serial header (everything before last 5 digits)
+                    header = extract_serial_header(serial_str)
 
-            # Extract the serial header (everything before last 5 digits)
-            header = extract_serial_header(first_serial)
-
-            # Pattern: MGC + optional chars + (S or C) at the end
-            # This handles: MGC1S, MGC2S, MGC3C, MGC4C, MGCK1S, MGCK2S, etc.
-            # Also handles: MGCK1S, MGCK2S, MGCK3S, MGCK4S, etc.
-            # Ignore first 3 chars "MGC", then look for S or C at the end
-            match = re.search(r"^MGC.*(S|C)$", header, re.IGNORECASE)
-            if match:
-                suffix = match.group(1).upper()  # Extract S or C
-                part = f"{part}{suffix}"
+                    # Pattern: MGC + optional chars + (S or C) at the end
+                    # This handles: MGC1S, MGC2S, MGC3C, MGC4C, MGCK1S, MGCK2S, etc.
+                    # Ignore first 3 chars "MGC", then look for S or C at the end
+                    match = re.search(r"^MGC.*(S|C)$", header, re.IGNORECASE)
+                    if match:
+                        suffix = match.group(1).upper()  # Extract S or C
+                        part = f"{part}{suffix}"
+                        break
 
     return part
 
@@ -349,11 +356,11 @@ def group_scans(scans: list) -> dict:
 
 
 def generate_excel_report(
-    grouped_data: dict, scans: list, report_date: datetime
+    grouped_data: dict, scans: list, report_date: datetime, filename: str = None
 ) -> str:
     """
     Generate Excel report matching Build_Report format.
-    Returns path to temporary Excel file.
+    Returns path to Excel file.
     """
     wb = Workbook()
     ws = wb.active
@@ -854,25 +861,28 @@ def generate_excel_report(
     ws_part_summary = wb.create_sheet(title="Part Summary")
 
     # Calculate global part totals first
+    # Group by TRANSFORMED part number to separate MGC variants (S/C)
     global_part_data = defaultdict(lambda: {"pieces": 0, "serials": []})
 
     for scan in scans:
         part = scan.get("part_id") or "Unknown"
         serial = scan.get("serial_number") or ""
-        global_part_data[part]["pieces"] += PIECES_PER_BOX
+
+        # Apply part number transformations based on this scan's serial
+        # This will separate MGC variants (e.g., 536713-002S vs 536713-002C)
+        display_part = apply_part_number_variant(part, [serial] if serial else [])
+
+        global_part_data[display_part]["pieces"] += PIECES_PER_BOX
         if serial:
-            global_part_data[part]["serials"].append(serial)
+            global_part_data[display_part]["serials"].append(serial)
 
     ps_row = 1
     # Check if we have data
     if not global_part_data:
         ws_part_summary.cell(row=1, column=1, value="No scans found.")
     else:
-        for part in sorted(global_part_data.keys()):
-            data = global_part_data[part]
-
-            # Apply part number transformations
-            display_part_summary = apply_part_number_variant(part, data["serials"])
+        for display_part in sorted(global_part_data.keys()):
+            data = global_part_data[display_part]
 
             # Format:
             # <Part Number>
@@ -880,9 +890,7 @@ def generate_excel_report(
             # SERIAL SEQUENCES: <Ranges>
 
             # Part Part Number
-            cell_part = ws_part_summary.cell(
-                row=ps_row, column=1, value=display_part_summary
-            )
+            cell_part = ws_part_summary.cell(row=ps_row, column=1, value=display_part)
             cell_part.font = Font(bold=True, size=12)
             ps_row += 1
 
@@ -994,8 +1002,10 @@ def generate_excel_report(
 
         print(f"[OK] Added sheet for {operator} with {len(operator_scans)} scans")
 
-    # Save to temp file
-    temp_path = tempfile.mktemp(suffix=".xlsx")
+    # Save to temp file with predictable name
+    date_str = report_date.strftime("%m-%d-%Y")
+    filename = f"Build_Report_{date_str}.xlsx"
+    temp_path = os.path.join(tempfile.gettempdir(), filename)
     wb.save(temp_path)
     print(f"[OK] Generated Excel report: {temp_path}")
 
@@ -1036,7 +1046,6 @@ def generate_qb_import_file(scans: list, report_date: datetime) -> str:
     # Headers
     headers = [
         "DATE",
-        "S.No",
         "Inventory Assembly Item",
         "Memo",
         "Quantity to Build",
@@ -1069,7 +1078,6 @@ def generate_qb_import_file(scans: list, report_date: datetime) -> str:
 
     # Populate data rows
     row = 2
-    s_no = 1
 
     for part in sorted(part_totals.keys()):
         data = part_totals[part]
@@ -1082,47 +1090,42 @@ def generate_qb_import_file(scans: list, report_date: datetime) -> str:
         cell.border = border
         cell.alignment = center_align
 
-        # S.No
-        cell = ws.cell(row=row, column=2, value=s_no)
-        cell.border = border
-        cell.alignment = center_align
-
         # Inventory Assembly Item (Part Number with transformations)
-        cell = ws.cell(row=row, column=3, value=part)
+        cell = ws.cell(row=row, column=2, value=part)
         cell.border = border
         cell.alignment = center_align
 
         # Memo (serial number ranges - client can delete if not needed)
-        cell = ws.cell(row=row, column=4, value=serial_ranges)
+        cell = ws.cell(row=row, column=3, value=serial_ranges)
         cell.border = border
         cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
         # Quantity to Build
-        cell = ws.cell(row=row, column=5, value=data["pieces"])
+        cell = ws.cell(row=row, column=4, value=data["pieces"])
         cell.border = border
         cell.alignment = center_align
 
         # Mark Pending if Required
-        cell = ws.cell(row=row, column=6, value="FALSE")
+        cell = ws.cell(row=row, column=5, value="FALSE")
         cell.border = border
         cell.alignment = center_align
 
         row += 1
-        s_no += 1
 
     # Auto-adjust column widths
     ws.column_dimensions["A"].width = 12  # DATE
-    ws.column_dimensions["B"].width = 8  # S.No
-    ws.column_dimensions["C"].width = 30  # Inventory Assembly Item
-    ws.column_dimensions["D"].width = 60  # Memo (serial number ranges)
-    ws.column_dimensions["E"].width = 18  # Quantity to Build
-    ws.column_dimensions["F"].width = 25  # Mark Pending if Required
+    ws.column_dimensions["B"].width = 30  # Inventory Assembly Item
+    ws.column_dimensions["C"].width = 60  # Memo (serial number ranges)
+    ws.column_dimensions["D"].width = 18  # Quantity to Build
+    ws.column_dimensions["E"].width = 25  # Mark Pending if Required
 
-    # Save to temp file
-    temp_path = tempfile.mktemp(suffix=".xlsx")
+    # Save to temp file with predictable name
+    date_str = report_date.strftime("%m-%d-%Y")
+    filename = f"QB_Build_Assembly_{date_str}.xlsx"
+    temp_path = os.path.join(tempfile.gettempdir(), filename)
     wb.save(temp_path)
     print(f"[OK] Generated QuickBooks import file: {temp_path}")
-    print(f"   - {s_no - 1} part numbers")
+    print(f"   - {row - 2} part numbers")
     print(f"   - Date: {date_str}")
 
     return temp_path
@@ -1280,22 +1283,25 @@ def backup_to_google_sheets(scans: list, report_date: datetime):
 
 def main():
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Daily Build Report Generator")
     parser.add_argument("date", nargs="?", help="Report date (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="Test mode (no email)")
-    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
+    parser.add_argument(
+        "--info",
+        action="store_true",
+        help="Show diagnostic info (date ranges, time zone)",
+    )
     args = parser.parse_args()
-    
+
     test_mode = args.test
     info_mode = args.info
-    
+
     if info_mode:
         # Just show info, don't process
-        print("
-" + "="*70)
+        print("=" * 70)
         print("DAILY REPORT - DIAGNOSTIC INFO")
-        print("="*70)
+        print("=" * 70)
         print()
         print(f"Current Local Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
         print(f"Target Date: {args.date if args.date else 'yesterday'}")
@@ -1315,26 +1321,33 @@ def main():
         print("       So you get full 24 hours of that date (00:00:00 to 23:59:59 EST)")
         print()
         print("Note: This -5 hour adjustment works if your system is in EST.")
-        print("      If your system is in a different time zone, scans may be misaligned.")
+        print(
+            "      If your system is in a different time zone, scans may be misaligned."
+        )
         sys.exit(0)
+
+
 def main():
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Daily Build Report Generator")
     parser.add_argument("date", nargs="?", help="Report date (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="Test mode (no email)")
-    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
+    parser.add_argument(
+        "--info",
+        action="store_true",
+        help="Show diagnostic info (date ranges, time zone)",
+    )
     args = parser.parse_args()
-    
+
     test_mode = args.test
     info_mode = args.info
-    
+
     if info_mode:
         # Just show info, don't process
-        print("
-" + "="*70)
+        print("=" * 70)
         print("DAILY REPORT - DIAGNOSTIC INFO")
-        print("="*70)
+        print("=" * 70)
         print()
         print(f"Current Local Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
         print(f"Target Date: {args.date if args.date else 'yesterday'}")
@@ -1354,9 +1367,11 @@ def main():
         print("       So you get full 24 hours of that date (00:00:00 to 23:59:59 EST)")
         print()
         print("Note: This -5 hour adjustment works if your system is in EST.")
-        print("      If your system is in a different time zone, scans may be misaligned.")
+        print(
+            "      If your system is in a different time zone, scans may be misaligned."
+        )
         sys.exit(0)
-    
+
     if args.date:
         try:
             target_date = datetime.strptime(args.date, "%Y-%m-%d")
@@ -1365,6 +1380,8 @@ def main():
             sys.exit(1)
     else:
         target_date = datetime.now() - timedelta(days=1)
+
+
 def main():
     """Main entry point"""
     import argparse
@@ -1372,21 +1389,21 @@ def main():
     parser = argparse.ArgumentParser(description="Daily Build Report Generator")
     parser.add_argument("date", nargs="?", help="Report date (YYYY-MM-DD)")
     parser.add_argument("--test", action="store_true", help="Test mode (no email)")
-    parser.add_argument("--test", action="store_true", help="Test mode (no email)")
-    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
-    parser.add_argument("--info", action="store_true", help="Show diagnostic info (date ranges, time zone)")
-    test_mode = args.test
-    info_mode = args.info
+    parser.add_argument(
+        "--info",
+        action="store_true",
+        help="Show diagnostic info (date ranges, time zone)",
+    )
     args = parser.parse_args()
-    
+
     test_mode = args.test
     info_mode = args.info
-    
+
     if info_mode:
         # Just show info, don't process
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("DAILY REPORT - DIAGNOSTIC INFO")
-        print("="*70)
+        print("=" * 70)
         print()
         print(f"Current Local Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}")
         print(f"Target Date: {args.date if args.date else 'yesterday'}")
@@ -1406,10 +1423,10 @@ def main():
         print("       So you get full 24 hours of that date (00:00:00 to 23:59:59 EST)")
         print()
         print("Note: This -5 hour adjustment works if your system is in EST.")
-        print("      If your system is in a different time zone, scans may be misaligned.")
+        print(
+            "      If your system is in a different time zone, scans may be misaligned."
+        )
         sys.exit(0)
-    
-    if args.date:
 
     if args.date:
         try:

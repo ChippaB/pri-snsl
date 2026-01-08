@@ -27,11 +27,14 @@ def test_mgc_suffix(serial: str, part_number: str) -> bool:
 
     Returns: True if part number would have S or C added
     """
-    if not part_number.startswith("MGC"):
-        return False
-
     # Check if part already has S/C suffix
     if part_number.endswith("S") or part_number.endswith("C"):
+        print(f"SKIP {serial} -> Part {part_number} already has S/C suffix")
+        return False
+
+    # Check if serial starts with MGC
+    if not serial.startswith("MGC"):
+        print(f"SKIP {serial} -> Serial doesn't start with MGC")
         return False
 
     # Extract header from serial
@@ -43,11 +46,11 @@ def test_mgc_suffix(serial: str, part_number: str) -> bool:
     if match:
         suffix = match.group(1).upper()
         print(
-            f"✅ {serial} -> Header: {header} -> Adds '{suffix}' to {part_number} -> {part_number}{suffix}"
+            f"PASS {serial} -> Header: {header} -> Adds '{suffix}' to {part_number} -> {part_number}{suffix}"
         )
         return True
     else:
-        print(f"❌ {serial} -> Header: {header} -> NO S/C match")
+        print(f"FAIL {serial} -> Header: {header} -> NO S/C match")
         return False
 
 
@@ -58,18 +61,17 @@ print("=" * 70)
 print()
 
 test_cases = [
-    # Working examples (should get S/C suffix)
+    # MGC serials with S/C in header (should get S/C suffix)
     ("MGC1S17775", "536713-001", "Should add S"),
     ("MGC2C10800", "536713-002", "Should add C"),
     ("MGCK1S58198", "536719-001", "Should add S"),
     ("MGCK2S14399", "536723-001", "Should add S"),
-    # Issue examples (mentioned by user)
     ("MGC2S17775", "536713-002", "Should add S"),
     ("MGCK2S14399", "536723-001", "Should add S"),
-    # 536 parts NOT in eligible list (should now get S/C suffix with new logic)
-    ("536789-001", "536789-001", "Should add S"),
-    ("536999-001", "536999-001", "Should add S"),
-    # Non-MGC parts (should not get S/C suffix)
+    # MGC serials without S/C in header (should NOT get S/C suffix)
+    ("MGCK112345", "536789-001", "Should NOT add S/C"),
+    ("MGC432100", "536999-001", "Should NOT add S/C"),
+    # Non-MGC serials (should not get S/C suffix)
     ("757EN12345", "100757EN", "Should NOT add S/C"),
     ("760E212345", "100760E2", "Should NOT add S/C"),
 ]
@@ -97,7 +99,7 @@ print(
 )
 print()
 print("Analysis:")
-print("- With new logic, ANY MGC serial (not just 536xxx) will get S/C suffix")
+print("- Logic checks if SERIAL starts with 'MGC' (not the part number)")
 print("- Pattern: ^MGC.*(S|C)$ - checks serial header (before last 5 digits)")
 print("- Examples of patterns detected:")
 print("  - MGC1S17775 -> Header: MGC1S -> Pattern matches 'S' -> Adds 'S' suffix")
@@ -106,6 +108,6 @@ print("  - MGCK1S58198 -> Header: MGCK1S -> Pattern matches 'S' -> Adds 'S' suff
 print("  - MGCK2S14399 -> Header: MGCK2S -> Pattern matches 'S' -> Adds 'S' suffix")
 print()
 print("Benefit:")
-print("  - No need to maintain eligible_parts list")
-print("  - Automatically handles new MGC part numbers")
+print("  - Works for ANY part number (not just 536xxx)")
+print("  - Automatically handles new MGC serial formats")
 print("  - Works with KIT prefixes (MGCK1, MGCK2, etc.)")
