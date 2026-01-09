@@ -473,7 +473,8 @@ def generate_excel_report(
             row_fill = alt_row_fill if row_counter % 2 == 1 else None
 
             # Apply part number transformations (PFR prefix, MGC variants)
-            display_part = apply_part_number_variant(part, all_part_serials)
+            # Use only the serials for THIS header, not all headers for the part
+            display_part = apply_part_number_variant(part, totals["serials"])
 
             cell_part = ws.cell(row=row, column=1, value=display_part)
             cell_part.border = border

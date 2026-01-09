@@ -105,9 +105,9 @@ def main():
     try:
         cmd = [sys.executable, "daily_report.py"]
 
-        # Add date argument if provided
-        if args.date:
-            cmd.append(args.date)
+        # Add date argument (either explicit date or calculated from --today flag)
+        if args.date or args.today:
+            cmd.append(date_str)
 
         # Add --test flag
         cmd.append("--test")
