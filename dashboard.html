@@ -1942,7 +1942,16 @@
             document.getElementById('editStation').value = scan.station_id || '';
             document.getElementById('editComment').value = scan.batch_comment || '';
             document.getElementById('editNotes').value = scan.dashboard_notes || '';
-            document.getElementById('datetimeGroup').style.display = 'none';
+            
+            // Show and populate datetime field
+            document.getElementById('datetimeGroup').style.display = 'block';
+            if (scan.created_at) {
+                // Convert UTC timestamp to local datetime-local format
+                const date = new Date(scan.created_at);
+                const offset = date.getTimezoneOffset() * 60000;
+                const localISOTime = new Date(date - offset).toISOString().slice(0, 16);
+                document.getElementById('editDateTime').value = localISOTime;
+            }
 
             document.getElementById('recordModal').style.display = 'flex';
         }
@@ -1996,6 +2005,12 @@
             }
 
             try {
+                // Get datetime value (used for both add and edit)
+                const dateTimeValue = document.getElementById('editDateTime').value;
+                if (dateTimeValue) {
+                    recordData.created_at = new Date(dateTimeValue).toISOString();
+                }
+
                 if (isEditMode) {
                     // Update existing record
                     const recordId = document.getElementById('editRecordId').value;
@@ -2007,10 +2022,6 @@
                     if (error) throw error;
                 } else {
                     // Insert new record with custom created_at
-                    const dateTimeValue = document.getElementById('editDateTime').value;
-                    if (dateTimeValue) {
-                        recordData.created_at = new Date(dateTimeValue).toISOString();
-                    }
                     const { error } = await supabaseClient
                         .from('scans')
                         .insert([recordData]);
