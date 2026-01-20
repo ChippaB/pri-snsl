@@ -2,6 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.7.2: Added 100760E rule (5-digit serials) - fixes end-cap character being included in serial number
 // v8.7.1: CRITICAL FIX - Corrected all 66 broken regex patterns in PRODUCT_SERIAL_RULES (removed invalid escape sequences)
 // v8.7.0: PRODUCT_SERIAL_RULES updated with 44 MASTER TRUTH rules from serial_numbers.db (31,188 verified records)
 // v8.6.6: PUL9000K serial extraction includes part prefix (PUL9000K29689, not just 29689)
@@ -183,6 +184,11 @@ const PRODUCT_SERIAL_RULES = {
         pattern: /^(759WN\d{5}).*$/,
         extractGroup: 1,
         description: 'Extract full 759WN + 5 digits (1 record), ignore trailing check digits/padding'
+    },
+    '100760E': {
+        pattern: /^(760E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 760E + 5 digits, ignore trailing check digits/padding (end-cap fix 2026-01-20)'
     },
     '100760EL': {
         pattern: /^(760EL\d{5}).*$/,

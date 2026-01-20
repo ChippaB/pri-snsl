@@ -119,6 +119,11 @@ const PRODUCT_SERIAL_RULES = {
         extractGroup: 1,
         description: 'Extract full 759WN + 5 digits (1 record), ignore trailing check digits/padding'
     },
+    '100760E': {
+        pattern: /^(760E\d{5}).*$/,
+        extractGroup: 1,
+        description: 'Extract full 760E + 5 digits, ignore trailing check digits/padding (end-cap fix 2026-01-20)'
+    },
     '100760EL': {
         pattern: /^(760EL\d{5}).*$/,
         extractGroup: 1,
