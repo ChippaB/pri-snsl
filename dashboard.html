@@ -2069,33 +2069,35 @@
             deleteBtn.textContent = 'Deleting...';
 
             try {
-                const { error: serialUnitsError } = await supabaseClient
-                    .from('serial_units')
-                    .delete()
-                    .eq('scan_id', recordId);
-
-                if (serialUnitsError) {
-                    console.error('Failed to delete serial_units:', serialUnitsError);
-                    alert('Could not remove related unit data. Please try again.');
-                    deleteBtn.disabled = false;
-                    deleteBtn.textContent = 'Delete';
-                    return;
-                }
-
+                // Delete the scan record
+                // The ON DELETE CASCADE foreign key will automatically delete related serial_units
                 const { error: scansError } = await supabaseClient
                     .from('scans')
                     .delete()
                     .eq('id', recordId);
 
-                if (scansError) throw scansError;
+                if (scansError) {
+                    console.error('Delete error:', scansError);
+                    
+                    // Check if it's an RLS policy error
+                    if (scansError.code === '42501' || scansError.message?.includes('policy')) {
+                        alert('Permission denied. Please run the fix_delete_rls.sql script in Supabase to enable delete functionality.');
+                    } else {
+                        alert('Failed to delete record: ' + scansError.message);
+                    }
+                    
+                    deleteBtn.disabled = false;
+                    deleteBtn.textContent = 'Delete';
+                    return;
+                }
 
+                // Success!
                 closeDeleteModal();
                 await fetchScans();
 
             } catch (e) {
                 console.error('Delete error:', e);
                 alert('Something went wrong while deleting this record. Please refresh and try again.');
-            } finally {
                 deleteBtn.disabled = false;
                 deleteBtn.textContent = 'Delete';
             }

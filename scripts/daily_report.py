@@ -227,10 +227,13 @@ def apply_part_number_variant(part: str, serials: list) -> str:
     Apply part number transformations based on serial headers and part patterns.
 
     Rules:
-    1. PFR prefix: Add '301-' prefix to all part numbers starting with 'PFR'
+    1. Part ID 100760: Add space between "100" and "760"
+       Example: '100760' -> '100 760'
+
+    2. PFR prefix: Add '301-' prefix to all part numbers starting with 'PFR'
        Example: 'PFR60W' -> '301-PFR60W'
 
-    2. MGC variant suffixes: For part numbers starting with '536', append suffix
+    3. MGC variant suffixes: For part numbers starting with '536', append suffix
        based on serial header pattern (everything before last 5 digits):
        - Pattern: MGC + any chars + S/C at end
        - Examples:
@@ -251,11 +254,15 @@ def apply_part_number_variant(part: str, serials: list) -> str:
     if not part or not serials:
         return part
 
-    # Rule 1: Add 301- prefix to PFR parts
+    # Rule 1: Format 100760 as "100 760" (add space)
+    if part == "100760":
+        part = "100 760"
+
+    # Rule 2: Add 301- prefix to PFR parts
     if part.startswith("PFR"):
         part = f"301-{part}"
 
-    # Rule 2: Add MGC variant suffix based on serial header pattern
+    # Rule 3: Add MGC variant suffix based on serial header pattern
     # Checks if ANY serial starts with "MGC" and has S/C in header (ignoring first 3 chars)
     # Examples:
     #   - MGC1S17775 (header: MGC1S) -> append 'S' -> '536713-001S'
