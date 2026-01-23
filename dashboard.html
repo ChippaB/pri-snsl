@@ -1094,6 +1094,22 @@
                     </label>
                     <span>Auto-refresh (30s)</span>
                 </div>
+                <div class="pagination-controls" id="paginationControls"
+                    style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="changePage('first')" id="btnFirst">⏮️ First</button>
+                    <button class="btn btn-secondary" onclick="changePage('prev')" id="btnPrev">◀️ Prev</button>
+                    <span id="pageInfo" style="font-weight: 500;">Page 1 of 1</span>
+                    <button class="btn btn-secondary" onclick="changePage('next')" id="btnNext">Next ▶️</button>
+                    <button class="btn btn-secondary" onclick="changePage('last')" id="btnLast">Last ⏭️</button>
+                    <select id="pageSizeSelect" onchange="changePageSize()"
+                        style="padding: 6px; border-radius: 4px; border: 1px solid var(--border);">
+                        <option value="50">50 per page</option>
+                        <option value="100" selected>100 per page</option>
+                        <option value="250">250 per page</option>
+                        <option value="500">500 per page</option>
+                        <option value="1000">1000 per page</option>
+                    </select>
+                </div>
                 <div id="footerInfo">Loading...</div>
             </div>
         </div>
@@ -1194,6 +1210,11 @@
         let allScans = [];
         let filteredScans = [];
         let refreshInterval = null;
+
+        // Pagination state
+        let currentPage = 1;
+        let pageSize = 100;
+        let totalPages = 1;
 
         // DOM elements
         const tableBody = document.getElementById('tableBody');
@@ -1633,20 +1654,38 @@
                 return true;
             });
 
+            currentPage = 1; // Reset to first page when filters change
             renderTable();
         }
 
-        // Render table
+        // Render table with pagination
         function renderTable() {
             filteredCount.textContent = filteredScans.length.toLocaleString();
-            footerInfo.textContent = `Showing ${filteredScans.length.toLocaleString()} scans`;
+
+            // Calculate pagination
+            totalPages = Math.ceil(filteredScans.length / pageSize);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredScans.length);
+            const pageScans = filteredScans.slice(startIndex, endIndex);
+
+            // Update footer info
+            if (filteredScans.length === 0) {
+                footerInfo.textContent = 'No scans to display';
+            } else {
+                footerInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${filteredScans.length.toLocaleString()} scans`;
+            }
+
+            // Update pagination controls
+            updatePaginationControls();
 
             if (filteredScans.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="8" class="empty">No scans match your filters.</td></tr>';
                 return;
             }
 
-            tableBody.innerHTML = filteredScans.map(scan => {
+            tableBody.innerHTML = pageScans.map(scan => {
                 // Determine flag classes
                 const isUnknown = scan.part_id === 'UNKNOWN' || !scan.part_id;
                 const isShort = scan.serial_number && scan.serial_number.length < 5;
@@ -1830,6 +1869,43 @@
             applyFilters();
         }
 
+        // ===== PAGINATION FUNCTIONS =====
+        function changePage(direction) {
+            switch (direction) {
+                case 'first':
+                    currentPage = 1;
+                    break;
+                case 'prev':
+                    if (currentPage > 1) currentPage--;
+                    break;
+                case 'next':
+                    if (currentPage < totalPages) currentPage++;
+                    break;
+                case 'last':
+                    currentPage = totalPages;
+                    break;
+            }
+            renderTable();
+            // Scroll to top of table
+            document.querySelector('.table-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+            currentPage = 1; // Reset to first page
+            renderTable();
+        }
+
+        function updatePaginationControls() {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+
+            // Enable/disable buttons based on current page
+            document.getElementById('btnFirst').disabled = currentPage === 1;
+            document.getElementById('btnPrev').disabled = currentPage === 1;
+            document.getElementById('btnNext').disabled = currentPage === totalPages;
+            document.getElementById('btnLast').disabled = currentPage === totalPages;
+        }
+
         // Export to CSV
         function exportCSV() {
             if (filteredScans.length === 0) {
@@ -1942,7 +2018,7 @@
             document.getElementById('editStation').value = scan.station_id || '';
             document.getElementById('editComment').value = scan.batch_comment || '';
             document.getElementById('editNotes').value = scan.dashboard_notes || '';
-            
+
             // Show and populate datetime field
             document.getElementById('datetimeGroup').style.display = 'block';
             if (scan.created_at) {
@@ -1969,7 +2045,7 @@
             document.getElementById('editComment').value = '';
             document.getElementById('editNotes').value = '';
             document.getElementById('datetimeGroup').style.display = 'block';
-            
+
             const now = new Date();
             now.setSeconds(0, 0);
             const offset = now.getTimezoneOffset() * 60000;
@@ -2078,14 +2154,14 @@
 
                 if (scansError) {
                     console.error('Delete error:', scansError);
-                    
+
                     // Check if it's an RLS policy error
                     if (scansError.code === '42501' || scansError.message?.includes('policy')) {
                         alert('Permission denied. Please run the fix_delete_rls.sql script in Supabase to enable delete functionality.');
                     } else {
                         alert('Failed to delete record: ' + scansError.message);
                     }
-                    
+
                     deleteBtn.disabled = false;
                     deleteBtn.textContent = 'Delete';
                     return;
