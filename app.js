@@ -1288,8 +1288,9 @@ function parsePN_SN(s) {
                     const lastLetterPos = sNum.lastIndexOf(lastLetter);
                     const trailingChars = sNum.substring(lastLetterPos + 1);
 
-                    // Only strip if we have >6 trailing chars (leaves 6+ after strip)
-                    if (trailingChars.length > 6) {
+                    // Only strip if we have >5 trailing chars (leaves 5+ after strip)
+                    // This handles cases like R758EL111991 (6 digits) → R758EL11199 (5 digits)
+                    if (trailingChars.length > 5) {
                         sNum = sNum.substring(0, sNum.length - 1);
                     }
                 } else {

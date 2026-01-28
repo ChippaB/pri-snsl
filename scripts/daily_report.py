@@ -197,9 +197,13 @@ def format_range(prefix: str, start: int, end: int) -> str:
 
 def extract_serial_header(serial: str) -> str:
     """
-    Extract serial header prefix (everything before last 5 digits).
+    Extract serial header prefix (everything before trailing digits).
     'MGCK173156' -> 'MGCK1' (keeps 'MGCK1', drops '73156')
     'MGC2C12345' -> 'MGC2C'
+    'MGC290527' -> 'MGC2' (6 digits)
+    'MGC2900594' -> 'MGC2' (7 digits)
+    'R756EL11984' -> 'R756EL' (5 digits)
+    'R756EL111984' -> 'R756EL' (6 digits)
     Handles edge cases like ranges stored as single values.
     """
     if not serial:
@@ -211,15 +215,31 @@ def extract_serial_header(serial: str) -> str:
     if len(target) <= 5:
         return target or "UNKNOWN"
 
-    # Special handling for MGC serials: extract header before the trailing 5+ digits
+    # Special handling for MGC serials with S/C suffix: extract header before the trailing 5+ digits
     # MGC formats: MGC + digits/K + S/C + 5+ digits
     # Examples: MGC1S17775, MGC2C20297, MGCK1S58198, MGC2S104310
     mgc_match = re.match(r"^(MGC[0-9K]*[SC])(\d{5,})$", target, re.IGNORECASE)
     if mgc_match:
         return mgc_match.group(1)  # Return everything before the trailing 5+ digits
 
-    # Default: Take everything except last 5 characters
-    return target[:-5]
+    # Special handling for MGC serials WITHOUT S/C suffix (e.g., MGC290527, MGC2900594)
+    # Pattern: MGC + optional K + single digit + 5+ trailing digits
+    # Examples: MGC290527 -> MGC2, MGC2900594 -> MGC2, MGCK173156 -> MGCK1
+    mgc_no_suffix_match = re.match(r"^(MGCK?\d)(\d{5,})$", target, re.IGNORECASE)
+    if mgc_no_suffix_match:
+        return mgc_no_suffix_match.group(1)  # Return MGC + optional K + single digit
+
+    # General pattern: Extract prefix before trailing 5+ digits
+    # This handles cases like:
+    #   - R756EL11984 (5 digits) -> R756EL
+    #   - R756EL111984 (6 digits) -> R756EL
+    #   - R757ELMSN102345 (6 digits) -> R757ELMSN
+    general_match = re.match(r"^(.+?)(\d{5,})$", target)
+    if general_match:
+        return general_match.group(1)  # Return prefix before trailing digits
+
+    # Fallback: return as-is if no pattern matches
+    return target
 
 
 def apply_part_number_variant(part: str, serials: list) -> str:
