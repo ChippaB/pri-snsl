@@ -2,6 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.7.4: HIBC part-aware strip — 759E2 (7 digits) and 756E2/757E2/758E2 (6 digits) no longer drop last serial digit
 // v8.7.2: Added 100760E rule (5-digit serials) - fixes end-cap character being included in serial number
 // v8.7.1: CRITICAL FIX - Corrected all 66 broken regex patterns in PRODUCT_SERIAL_RULES (removed invalid escape sequences)
 // v8.7.0: PRODUCT_SERIAL_RULES updated with 44 MASTER TRUTH rules from serial_numbers.db (31,188 verified records)
@@ -62,6 +63,11 @@ const BARCODE_VALIDATION = {
     // Suspicious characters that indicate scanner errors
     // NOTE: % is VALID for HIBC check digits (Mod 43), so it's excluded
     // Valid HIBC check chars: 0-9, A-Z, and special chars: - . $ / + %
+    // Part-specific: do NOT strip trailing digit when "chars after last letter" <= this (avoids dropping serial digit)
+    HIBC_MAX_TRAILING_BEFORE_STRIP: {
+        '100756E2': 6, '100757E2': 6, '100758E2': 6,  // 756E/757E/758E + 6 digits
+        '100759E2': 7   // 759E + 7 digits
+    },
     SUSPICIOUS_CHARS: /[*#@!~`^&()={}|[\]<>;:'"]/
 };
 
@@ -1258,58 +1264,46 @@ function parsePN_SN(s) {
             if (sNum.startsWith('+')) sNum = sNum.substring(1);
         }
 
-        // HIBC Check Digit Stripping (v8.6.4):
-        // HIBC standard: Serial format is PART_PREFIX + 5-DIGIT-SERIAL + CHECK_DIGIT
-        // Examples:
-        //   760E2 + 10718 + 5 = 760E2107185 → strip 5 → 760E210718 (6 digits remain)
-        //   757EN + 11203 + 6 = 757EN112036 → strip 6 → 757EN11203 (5 digits remain)
-        //   TNN102 + 12238 + F = TNN10212238F → strip F → TNN10212238
-        //   R757WM + 102689 + % = R757WM102689% → strip % → R757WM102689
-        //
-        // Valid HIBC Modulo 43 check digit chars: 0-9, A-Z, and special: - . $ / + %
+        // Resolve part id before stripping so we can use part-specific strip threshold (v8.6.6)
+        let partForStrip = p;
+        if (p.startsWith('446') && p.length > 4) {
+            if (p === '4461007801') partForStrip = '100780W';
+            else if (p.includes('PUL') || p.endsWith('1') || p.endsWith('0')) partForStrip = p.substring(3, p.length - 1);
+        }
+
+        // HIBC Check Digit Stripping (v8.6.4 / v8.6.6 part-aware):
+        // HIBC standard: Serial format is PART_PREFIX + N-DIGIT-SERIAL + optional CHECK_DIGIT
         // Rule: Strip the last character ONLY IF:
         //   1. Last char is a LETTER or SPECIAL CHAR (unambiguous check digit), OR
-        //   2. Last char is DIGIT AND there are >5 chars after the last letter
-        // Safety: Don't strip if ≤5 chars remain after last letter (serial would be too short)
+        //   2. Last char is DIGIT AND there are >maxTrailing chars after the last letter (part-specific)
+        // Parts like 100759E2 (759E+7 digits) use maxTrailing=7 so we don't strip the final serial digit
         if (sNum.length > 1) {
             const lastChar = sNum.charAt(sNum.length - 1);
             const isLetter = /^[A-Z]$/i.test(lastChar);
             const isSpecialChar = /^[\-\.\$\/\+\%]$/.test(lastChar);
 
-            // Always strip letters and special chars (they're clearly check digits)
             if (isLetter || isSpecialChar) {
                 sNum = sNum.substring(0, sNum.length - 1);
-            }
-            // For digits: check if we have enough trailing chars to safely strip
-            else {
+            } else {
                 const letterMatches = sNum.match(/[A-Z]/gi);
                 if (letterMatches) {
                     const lastLetter = letterMatches[letterMatches.length - 1];
                     const lastLetterPos = sNum.lastIndexOf(lastLetter);
                     const trailingChars = sNum.substring(lastLetterPos + 1);
-
-                    // Only strip if we have >5 trailing chars (leaves 5+ after strip)
-                    // This handles cases like R758EL111991 (6 digits) → R758EL11199 (5 digits)
-                    if (trailingChars.length > 5) {
+                    const maxTrailing = (VALIDATION_CONFIG.HIBC_MAX_TRAILING_BEFORE_STRIP && VALIDATION_CONFIG.HIBC_MAX_TRAILING_BEFORE_STRIP[partForStrip]) ?? 5;
+                    if (trailingChars.length > maxTrailing) {
                         sNum = sNum.substring(0, sNum.length - 1);
                     }
                 } else {
-                    // All numeric serial - strip last digit
                     sNum = sNum.substring(0, sNum.length - 1);
                 }
             }
         }
 
-        // Special handling for 446-prefix HIBC barcodes
+        // Apply 446 → part id for downstream
         if (p.startsWith('446') && p.length > 4) {
-            // Special case: 4461007801 should become 100780W (legacy label fix)
-            if (p === '4461007801') {
-                p = '100780W';
-            }
-            // Standard PUL patterns or numeric endings: strip prefix and check digit
-            else if (p.includes('PUL') || p.endsWith('1') || p.endsWith('0')) {
-                p = p.substring(3, p.length - 1);
-            }
+            if (p === '4461007801') p = '100780W';
+            else if (p.includes('PUL') || p.endsWith('1') || p.endsWith('0')) p = p.substring(3, p.length - 1);
         }
 
         // Apply product-specific serial extraction rules (v8.6.6)
