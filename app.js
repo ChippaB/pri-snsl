@@ -1789,10 +1789,16 @@ function unlockScanner() {
 
 scanInput.addEventListener('keydown', async (ev) => {
     if (ev.key !== 'Enter') return;
-    if (isProcessing) { playSoundError(); return; }
+    if (isProcessing) {
+        console.log('⚠️ Scan blocked: Already processing');
+        playSoundError();
+        return;
+    }
 
     let raw = scanInput.value.trim();
     if (!raw) return;
+
+    console.log('📥 Scan received:', raw); // Debug: log raw scan
 
     // Sanitize
     raw = raw.replace(/[\x00-\x1F\x7F]/g, '');
@@ -1802,15 +1808,18 @@ scanInput.addEventListener('keydown', async (ev) => {
     // Fail-fast: Reject malformed barcodes BEFORE they reach the database
     const validation = validateRawBarcode(raw);
     if (!validation.valid) {
+        console.log('❌ Validation failed:', validation.reason); // Debug: log validation failure
         showValidationError(validation.reason, raw);
         scanInput.value = '';  // Clear for immediate rescan
         scanInput.focus();
         return;  // FAIL FAST - never reaches database
     }
+    console.log('✅ Validation passed'); // Debug: validation OK
     // ===== END VALIDATION GATE =====
 
     // 1. Try GS1 / HIBC Parsing
     let parsed = parsePN_SN(raw);
+    console.log('📋 Parsed result:', parsed); // Debug: log parsed result
 
     // 2. Fallback / Custom Logic Parsing
     // If no part detected or empty serial, try to treat raw as the serial and extract part
@@ -1844,13 +1853,16 @@ scanInput.addEventListener('keydown', async (ev) => {
     // Check if this serial was recently scanned by the same operator
     // Works both online AND offline - prevents double-scans in a session
     const currentOperator = operatorInput.value || 'UNNAMED';
+    console.log('🔍 Checking duplicate for operator:', currentOperator, 'serial:', cleanedSerial); // Debug
     if (typeof isDuplicateScan === 'function' && isDuplicateScan(currentOperator, cleanedSerial)) {
+        console.log('⚠️ Duplicate detected - blocking scan'); // Debug
         show('⚠️ DUPLICATE (recent scan)', 'dup');
         playSoundDuplicate();
         scanInput.value = '';
         scanInput.focus();
         return;  // DUPLICATE - stop here, don't queue or sync
     }
+    console.log('✅ Not a duplicate - proceeding'); // Debug
     // ===== END DUPLICATE CHECK =====
 
     // LOCK scanner
