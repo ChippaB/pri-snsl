@@ -171,6 +171,15 @@ self.addEventListener('activate', event => {
                 return self.clients.claim();
             })
             .then(() => {
+                // Force all clients to reload to get the latest version
+                return self.clients.matchAll().then(clients => {
+                    clients.forEach(client => {
+                        // Navigate to the same URL - this forces a hard reload
+                        client.navigate(client.url);
+                    });
+                });
+            })
+            .then(() => {
                 // Notify all clients about the update
                 // This triggers a reload on all open pages to get the latest version
                 return self.clients.matchAll().then(clients => {

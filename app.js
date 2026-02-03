@@ -2034,11 +2034,15 @@ async function initApp() {
 
                             // Automatically reload after 2 seconds to get the update
                             setTimeout(() => {
-                                // Tell the new service worker to skip waiting
+                                // Tell the new service worker to skip waiting and become active
                                 newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                // Then reload the page
+                            }, 1500);
+
+                            // Wait for the new worker to activate, then reload
+                            newWorker.addEventListener('controllerchange', () => {
+                                console.log('✅ New service worker activated, reloading page');
                                 window.location.reload();
-                            }, 2000);
+                            });
                         }
                     });
                 });
@@ -2048,11 +2052,10 @@ async function initApp() {
                     if (event.data && event.data.type === 'SERVICE_WORKER_UPDATE') {
                         console.log(`📢 Service worker update available: ${event.data.version}`);
 
-                        // Show notification and reload
+                        // Show notification and reload immediately
                         showUpdateNotification();
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 2000);
+                        // Force reload to get the new version
+                        window.location.reload();
                     }
                 });
             })
@@ -2064,45 +2067,8 @@ async function initApp() {
 
 // Show update notification to user (v8.8.2)
 function showUpdateNotification() {
-    // Create a temporary notification banner
-    const banner = document.createElement('div');
-    banner.id = 'updateBanner';
-    banner.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: #10b981;
-        color: white;
-        padding: 12px;
-        text-align: center;
-        font-weight: 600;
-        z-index: 9999;
-        animation: slideDown 0.3s ease-out;
-    `;
-    banner.innerHTML = '✅ New version available! Refreshing...';
-
-    // Add animation keyframes if not present
-    if (!document.getElementById('updateBannerStyles')) {
-        const style = document.createElement('style');
-        style.id = 'updateBannerStyles';
-        style.textContent = `
-            @keyframes slideDown {
-                from { transform: translateY(-100%); }
-                to { transform: translateY(0); }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    document.body.appendChild(banner);
-
-    // Remove banner after reload (in case reload fails)
-    setTimeout(() => {
-        if (document.body.contains(banner)) {
-            document.body.removeChild(banner);
-        }
-    }, 5000);
+    // v8.8.2: Simplified - just log to console, no banner
+    console.log('📢 New version available - page will reload');
 }
 
 initApp();
