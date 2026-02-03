@@ -953,7 +953,7 @@ const $ = s => document.querySelector(s);
 const statusBox = $('#status'), lastSerial = $('#lastSerial'), lastPart = $('#lastPart');
 const scanInput = $('#scan'), operatorInput = $('#operator'), stationSel = $('#station');
 const clearBtn = $('#clearBtn');
-const historyToggle = $('#historyToggle'), historyPanel = $('#historyPanel');
+const historyPanel = $('#historyPanel'); // v8.8.0: historyToggle removed - always expanded
 const lastScanStatus = $('#lastScanStatus');
 const lastScanTime = $('#lastScanTime');
 const lastScanRelative = $('#lastScanRelative');
@@ -2118,7 +2118,7 @@ unlockBtn.addEventListener('click', () => {
     saveLockStates();
 });
 
-historyToggle.addEventListener('click', () => historyPanel.classList.toggle('expanded'));
+// v8.8.0: historyToggle removed - history panel is always expanded now
 
 // Batch Comment Logic
 lockBatchBtn.addEventListener('click', () => {
