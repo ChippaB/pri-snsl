@@ -1,5 +1,5 @@
 // ===== SUPABASE HEALTH CHECK MODULE =====
-// v8.8.0: Accurate Supabase reachability detection
+// v8.8.1: Accurate Supabase reachability detection
 // Distinguishes between "internet online" and "Supabase reachable"
 
 /**

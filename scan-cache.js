@@ -1,4 +1,4 @@
-// ===== CLIENT-SIDE SCAN CACHE (v8.8.0) =====
+// ===== CLIENT-SIDE SCAN CACHE (v8.8.1) =====
 // Prevents duplicate scans within a session
 // Works offline and online
 // Stores last N serials per operator
