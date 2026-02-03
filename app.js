@@ -2,11 +2,14 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.8.2: Hotfix - Fixed VALIDATION_CONFIG undefined reference
+//         - Changed VALIDATION_CONFIG to BARCODE_VALIDATION (line 1374)
+//         - Fixes critical bug preventing HIBC barcodes from processing
 // v8.8.1: Hotfix - Non-blocking Last Scan load
 //         - Fixed scan input blocking issue caused by await loadLastScan()
 //         - Scan input now enabled immediately, Last Scan loads in background
 //         - Barcodes process without delay on app load
-// v8.8.1: Offline-first scanning with accurate Supabase health detection
+// v8.8.0: Offline-first scanning with accurate Supabase health detection
 //         - Added supabase-health.js for distinct internet/Supabase status
 //         - Scan submit timeout (3s) prevents freezing on Supabase outage
 //         - Queued scans persist across refreshes, auto-flush on recovery
@@ -538,7 +541,7 @@ async function getPendingCount() {
 
 /**
  * Flush queue - attempt to sync all pending scans to Supabase
- * v8.8.1: Health-check aware - only flushes when Supabase is reachable
+ * v8.8.2: Health-check aware - only flushes when Supabase is reachable
  */
 let isFlushingQueue = false;
 async function flushQueue() {
@@ -957,7 +960,7 @@ const $ = s => document.querySelector(s);
 const statusBox = $('#status'), lastSerial = $('#lastSerial'), lastPart = $('#lastPart');
 const scanInput = $('#scan'), operatorInput = $('#operator'), stationSel = $('#station');
 const clearBtn = $('#clearBtn');
-const historyPanel = $('#historyPanel'); // v8.8.1: historyToggle removed - always expanded
+const historyPanel = $('#historyPanel'); // v8.8.2: historyToggle removed - always expanded
 const lastScanStatus = $('#lastScanStatus');
 const lastScanTime = $('#lastScanTime');
 const lastScanRelative = $('#lastScanRelative');
@@ -1447,7 +1450,7 @@ function updateLastScanDisplay(data) {
 }
 
 /**
- * Load last scan from multiple sources (v8.8.1 enhanced)
+ * Load last scan from multiple sources (v8.8.2 enhanced)
  * Sources checked in order:
  * 1. localStorage (fastest, previous sessions)
  * 2. Queued scans (offline scans not yet synced)
@@ -1698,7 +1701,7 @@ window.addEventListener('offline', () => {
     }
 });
 
-// === Send Function - OFFLINE-FIRST v8.8.1 ===
+// === Send Function - OFFLINE-FIRST v8.8.2 ===
 // 1. Check Supabase reachability (if available)
 // 2. Queue locally FIRST (guaranteed persistence)
 // 3. Attempt immediate sync ONLY if Supabase is reachable
@@ -1849,7 +1852,7 @@ scanInput.addEventListener('keydown', async (ev) => {
         return;
     }
 
-    // ===== CLIENT-SIDE DUPLICATE CHECK (v8.8.1) =====
+    // ===== CLIENT-SIDE DUPLICATE CHECK (v8.8.2) =====
     // Check if this serial was recently scanned by the same operator
     // Works both online AND offline - prevents double-scans in a session
     const currentOperator = operatorInput.value || 'UNNAMED';
@@ -1979,7 +1982,7 @@ async function initApp() {
         console.warn('Queue init failed:', e);
     }
 
-    // Start Supabase health checks (v8.8.1)
+    // Start Supabase health checks (v8.8.2)
     if (typeof startHealthChecks === 'function') {
         startHealthChecks();
         // Show new status badges
@@ -2003,14 +2006,14 @@ async function initApp() {
     scanInput.classList.add('ready');
     scanInput.placeholder = '✅ Ready to scan';
 
-    // v8.8.1: Load last scan AFTER operator/station are set (non-blocking)
+    // v8.8.2: Load last scan AFTER operator/station are set (non-blocking)
     // This checks localStorage, queued scans, and Supabase for most recent
     loadLastScan().catch(err => console.warn('Failed to load last scan:', err));
 
     // Refresh history now that we have prefs loaded and dropdowns potentially set
     fetchHistory();
 
-    // Register Service Worker for PWA caching (v8.8.1 enhanced)
+    // Register Service Worker for PWA caching (v8.8.2 enhanced)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./service-worker.js')
             .then(reg => {
@@ -2059,7 +2062,7 @@ async function initApp() {
     console.log('🚀 App initialized');
 }
 
-// Show update notification to user (v8.8.1)
+// Show update notification to user (v8.8.2)
 function showUpdateNotification() {
     // Create a temporary notification banner
     const banner = document.createElement('div');
@@ -2109,13 +2112,13 @@ initApp();
 operatorInput.addEventListener('change', async () => {
     savePrefs();
     fetchHistory();
-    await loadLastScan(); // v8.8.1: Reload last scan when operator changes
+    await loadLastScan(); // v8.8.2: Reload last scan when operator changes
 });
 
 stationSel.addEventListener('change', async () => {
     savePrefs();
     fetchHistory();
-    await loadLastScan(); // v8.8.1: Reload last scan when station changes
+    await loadLastScan(); // v8.8.2: Reload last scan when station changes
 });
 
 lockBtn.addEventListener('click', () => {
@@ -2135,7 +2138,7 @@ unlockBtn.addEventListener('click', () => {
     saveLockStates();
 });
 
-// v8.8.1: historyToggle removed - history panel is always expanded now
+// v8.8.2: historyToggle removed - history panel is always expanded now
 
 // Batch Comment Logic
 lockBatchBtn.addEventListener('click', () => {
