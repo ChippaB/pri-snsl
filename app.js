@@ -1371,7 +1371,7 @@ function parsePN_SN(s) {
                     const lastLetter = letterMatches[letterMatches.length - 1];
                     const lastLetterPos = sNum.lastIndexOf(lastLetter);
                     const trailingChars = sNum.substring(lastLetterPos + 1);
-                    const maxTrailing = (VALIDATION_CONFIG.HIBC_MAX_TRAILING_BEFORE_STRIP && VALIDATION_CONFIG.HIBC_MAX_TRAILING_BEFORE_STRIP[partForStrip]) ?? 5;
+                    const maxTrailing = (BARCODE_VALIDATION.HIBC_MAX_TRAILING_BEFORE_STRIP && BARCODE_VALIDATION.HIBC_MAX_TRAILING_BEFORE_STRIP[partForStrip]) ?? 5;
                     if (trailingChars.length > maxTrailing) {
                         sNum = sNum.substring(0, sNum.length - 1);
                     }
