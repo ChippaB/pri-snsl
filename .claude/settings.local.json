@@ -7,7 +7,9 @@
       "Bash(node test_759el_fix.js:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nv8.7.1: Fix broken regex patterns in product serial rules\n\nCRITICAL BUG FIX: All 66 PRODUCT_SERIAL_RULES regex patterns were malformed\nand never worked. This caused serial numbers like 759EL104116 to be saved\nincorrectly instead of being truncated to 759EL10411 as intended.\n\nRoot Cause:\n- generate_master_rules_v2.py generated patterns with invalid escape sequences\n- Example broken pattern: /^\\(\\\\759EL\\\\d{5}\\).*$$$ \n- Fixed pattern: /^\\(759EL\\\\d{5}\\).*$/\n\nChanges:\n- Fixed generate_master_rules_v2.py regex generation logic \\(line 106\\)\n- Corrected all 66 broken patterns in product_rules_master_truth.js\n- Corrected all 66 broken patterns in app.js\n- Bumped version to v8.7.1 in app.js, service-worker.js, manifest.json, index.html\n- Updated service worker cache name to force cache refresh on tablets\n\nImpact:\n- Part numbers like 100759EL will now correctly extract serial numbers\n- Trailing check digits/padding will be properly stripped per rule definitions\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(node:*)",
+      "Bash(ls:*)"
     ]
   }
 }

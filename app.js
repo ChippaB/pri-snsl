@@ -2,6 +2,15 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.8.0: Offline-first scanning with accurate Supabase health detection
+//         - Added supabase-health.js for distinct internet/Supabase status
+//         - Scan submit timeout (3s) prevents freezing on Supabase outage
+//         - Queued scans persist across refreshes, auto-flush on recovery
+//         - Client-side duplicate cache (last 100 serials per operator)
+//         - All barcode validation happens BEFORE queuing (fail-fast v8.6.0)
+//         - Enhanced Last Scan: pulls from localStorage + queued + Supabase
+//         - History panel expanded by default (no toggle button needed)
+//         - Last Scan persists across refresh and operator changes
 // v8.7.4: HIBC part-aware strip — 759E2 (7 digits) and 756E2/757E2/758E2 (6 digits) no longer drop last serial digit
 // v8.7.2: Added 100760E rule (5-digit serials) - fixes end-cap character being included in serial number
 // v8.7.1: CRITICAL FIX - Corrected all 66 broken regex patterns in PRODUCT_SERIAL_RULES (removed invalid escape sequences)
@@ -525,11 +534,26 @@ async function getPendingCount() {
 
 /**
  * Flush queue - attempt to sync all pending scans to Supabase
+ * v8.8.0: Health-check aware - only flushes when Supabase is reachable
  */
 let isFlushingQueue = false;
 async function flushQueue() {
     if (isFlushingQueue) return;
-    if (!navigator.onLine) return;
+
+    // Check internet connectivity
+    if (!navigator.onLine) {
+        console.log('📶 No internet - skipping queue flush');
+        return;
+    }
+
+    // Check Supabase reachability (if available)
+    if (typeof getConnectivityStatus === 'function') {
+        const status = getConnectivityStatus();
+        if (status.supabaseReachable === false) {
+            console.log('☁️ Supabase unreachable - skipping queue flush');
+            return;
+        }
+    }
 
     isFlushingQueue = true;
     console.log('🔄 Flushing offline queue...');
@@ -545,22 +569,41 @@ async function flushQueue() {
 
         console.log(`📤 Syncing ${pending.length} queued scan(s)...`);
 
+        let successCount = 0;
+        let failureCount = 0;
+
         for (const record of pending) {
             try {
                 const result = await syncScanToSupabase(record.payload, record.idempotencyKey);
                 if (result === 'OK' || result === 'DUPLICATE') {
                     await dequeueScan(record.idempotencyKey);
                     updateLastSyncTime(); // Track successful sync
+                    successCount++;
                     console.log(`✅ Synced: ${record.payload.serial_number}`);
+                } else if (result === 'TIMEOUT') {
+                    failureCount++;
+                    console.warn(`⏱️ Timeout: ${record.payload.serial_number}`);
+                    // Break on timeout to avoid spamming
+                    break;
                 } else {
+                    failureCount++;
                     console.warn(`⚠️ Failed to sync: ${record.payload.serial_number}`);
                 }
             } catch (e) {
+                failureCount++;
                 console.error('Sync error:', e);
             }
         }
 
+        // Trigger health check after flush attempt
+        if (typeof forceHealthCheck === 'function') {
+            forceHealthCheck();
+        }
+
         updateQueueUI();
+
+        // Log summary
+        console.log(`📊 Flush complete: ${successCount} synced, ${failureCount} failed`);
     } finally {
         isFlushingQueue = false;
     }
@@ -568,6 +611,7 @@ async function flushQueue() {
 
 /**
  * Direct sync to Supabase (used by queue flush)
+ * Now with explicit timeout to prevent hanging
  */
 async function syncScanToSupabase(payload, idempotencyKey) {
     const supabasePayload = {
@@ -580,18 +624,51 @@ async function syncScanToSupabase(payload, idempotencyKey) {
         idempotency_key: idempotencyKey
     };
 
-    try {
-        const { error, status } = await supabaseClient
-            .from('scans')
-            .insert([supabasePayload]);
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout for sync
 
-        if (error) {
-            // Duplicate (already synced) - treat as success
-            if (error.code === '23505' || status === 409) return 'DUPLICATE';
-            return 'ERROR';
+    try {
+        // Use fetch directly for timeout control
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/scans`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify([supabasePayload]),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+            return 'OK';
         }
-        return 'OK';
+
+        // Check for duplicate (unique constraint violation)
+        if (response.status === 409) {
+            return 'DUPLICATE';
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.code === '23505') {
+            return 'DUPLICATE';
+        }
+
+        return 'ERROR';
     } catch (e) {
+        clearTimeout(timeoutId);
+
+        // AbortError = timeout
+        if (e.name === 'AbortError') {
+            console.warn('Sync timeout - will retry later');
+            return 'TIMEOUT';
+        }
+
+        console.error('Sync error:', e);
         return 'ERROR';
     }
 }
@@ -1348,10 +1425,13 @@ function updateLastScanDisplay(data) {
     lastSerial.textContent = data.serial || '—';
     lastScanStatus.textContent = data.status || '';
 
+    // Status styling
     if (data.status === 'OK') {
         lastScanStatus.style.cssText = 'background:#d1fae5; color:#065f46;';
     } else if (data.status === 'DUPLICATE') {
         lastScanStatus.style.cssText = 'background:#fef3c7; color:#92400e;';
+    } else if (data.status === 'QUEUED') {
+        lastScanStatus.style.cssText = 'background:#dbeafe; color:#1e40af;';
     } else {
         lastScanStatus.style.cssText = 'background:#fee2e2; color:#991b1b;';
     }
@@ -1362,17 +1442,109 @@ function updateLastScanDisplay(data) {
     }
 }
 
-function loadLastScan() {
+/**
+ * Load last scan from multiple sources (v8.8.0 enhanced)
+ * Sources checked in order:
+ * 1. localStorage (fastest, previous sessions)
+ * 2. Queued scans (offline scans not yet synced)
+ * 3. Supabase (cloud database, if online)
+ * Uses the most recent across all sources
+ */
+async function loadLastScan() {
     const key = getLastScanKey();
+    let mostRecent = null;
+    let mostRecentTime = 0;
+
+    // Source 1: localStorage (previous sessions)
     const stored = localStorage.getItem(key);
     if (stored) {
         try {
             const data = JSON.parse(stored);
-            updateLastScanDisplay(data);
-            return;
-        } catch (e) { }
+            if (data.timestamp) {
+                const storedTime = new Date(data.timestamp).getTime();
+                if (storedTime > mostRecentTime) {
+                    mostRecent = data;
+                    mostRecentTime = storedTime;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to parse stored last scan:', e);
+        }
     }
-    updateLastScanDisplay(null);
+
+    // Source 2: Queued scans (offline scans)
+    try {
+        const pending = await getPendingScans();
+        const currentOp = operatorInput.value || 'UNNAMED';
+        const currentSt = stationSel.value || 'MAIN';
+
+        // Filter queued scans for current operator/station
+        const myQueuedScans = pending.filter(q =>
+            q.payload.operator === currentOp && q.payload.station === currentSt
+        );
+
+        if (myQueuedScans.length > 0) {
+            // Get the most recent queued scan
+            const latestQueued = myQueuedScans[myQueuedScans.length - 1]; // Last in array = most recent
+            const queuedTime = latestQueued.timestamp || Date.now();
+
+            if (queuedTime > mostRecentTime) {
+                mostRecent = {
+                    part: latestQueued.payload.part_number,
+                    serial: latestQueued.payload.serial_number,
+                    status: 'QUEUED',
+                    timestamp: new Date(queuedTime).toISOString()
+                };
+                mostRecentTime = queuedTime;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to check queued scans for last scan:', e);
+    }
+
+    // Source 3: Supabase (cloud database) - only if online
+    if (navigator.onLine && typeof getConnectivityStatus === 'function') {
+        const connectivity = getConnectivityStatus();
+        if (connectivity.supabaseReachable !== false) {
+            try {
+                const currentOp = operatorInput.value || 'UNNAMED';
+                const currentSt = stationSel.value || 'MAIN';
+
+                const { data, error } = await supabaseClient
+                    .from('scans')
+                    .select('part_id, serial_number, created_at')
+                    .eq('operator_name', currentOp)
+                    .eq('station_id', currentSt)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (!error && data && data.length > 0) {
+                    const dbScan = data[0];
+                    const dbTime = new Date(dbScan.created_at).getTime();
+
+                    if (dbTime > mostRecentTime) {
+                        mostRecent = {
+                            part: dbScan.part_id,
+                            serial: dbScan.serial_number,
+                            status: 'OK', // From database = synced
+                            timestamp: dbScan.created_at
+                        };
+                        mostRecentTime = dbTime;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to fetch last scan from Supabase:', e);
+            }
+        }
+    }
+
+    // Update display with the most recent across all sources
+    updateLastScanDisplay(mostRecent);
+
+    // Save to localStorage for next time
+    if (mostRecent) {
+        localStorage.setItem(key, JSON.stringify(mostRecent));
+    }
 }
 
 // Update relative time every 30 seconds
@@ -1496,40 +1668,36 @@ function renderHistory() {
 }
 
 // ===== CONNECTIVITY =====
-let consecutiveFailures = 0;
-const MAX_FAILURES_BEFORE_OFFLINE = 3;
+// NOTE: Network status is now managed by supabase-health.js
+// This section is kept for backwards compatibility but is largely superseded
 
+// Legacy function - now delegated to supabase-health.js
 function updateNetworkStatus(online) {
-    const net = document.getElementById('netStatus');
-    const warning = document.getElementById('offlineWarning');
-
-    if (online) {
-        consecutiveFailures = 0;
-        if (net) {
-            net.textContent = 'ONLINE (SUPABASE)';
-            net.style.background = '#10b981';
-        }
-        if (warning) warning.classList.remove('show');
-    } else {
-        if (net) {
-            net.textContent = 'OFFLINE';
-            net.style.background = '#ef4444';
-        }
-        if (warning) warning.classList.add('show');
-    }
+    // This is now handled by supabase-health.js
+    // Kept for backwards compatibility
+    console.warn('updateNetworkStatus() is deprecated - use supabase-health.js');
 }
 
+// Legacy event listeners - now in supabase-health.js
+// These are kept as backup in case supabase-health.js fails to load
 window.addEventListener('online', () => {
-    updateNetworkStatus(true);
-    // Auto-flush queue when connectivity returns
+    // Trigger immediate health check and flush
+    if (typeof forceHealthCheck === 'function') {
+        forceHealthCheck();
+    }
     setTimeout(flushQueue, 1000);
 });
-window.addEventListener('offline', () => updateNetworkStatus(false));
 
-// === Send Function - OFFLINE-FIRST ===
-// 1. Generate idempotency key
-// 2. Queue locally (guaranteed persistence)
-// 3. Attempt immediate sync if online
+window.addEventListener('offline', () => {
+    if (typeof updateConnectivityUI === 'function') {
+        updateConnectivityUI();
+    }
+});
+
+// === Send Function - OFFLINE-FIRST v8.8.0 ===
+// 1. Check Supabase reachability (if available)
+// 2. Queue locally FIRST (guaranteed persistence)
+// 3. Attempt immediate sync ONLY if Supabase is reachable
 // 4. Return status for UI feedback
 async function send(payload) {
     // Generate idempotency key: serial + station + timestamp
@@ -1547,39 +1715,57 @@ async function send(payload) {
     // Update queue UI
     updateQueueUI();
 
-    // If offline, return immediately with QUEUED status
+    // Check internet connectivity
     if (!navigator.onLine) {
+        console.log('📶 No internet - scan queued');
         return 'QUEUED';
     }
 
-    // Attempt immediate sync
-    try {
-        const result = await syncScanToSupabase(payload, idempotencyKey);
-
-        if (result === 'OK' || result === 'DUPLICATE') {
-            // Successfully synced - remove from queue
-            await dequeueScan(idempotencyKey);
-            updateQueueUI();
-            updateLastSyncTime(); // Track successful sync
-            consecutiveFailures = 0;
-            updateNetworkStatus(true);
-            return result;
-        } else {
-            // Failed to sync - stays in queue for later
-            consecutiveFailures++;
-            if (consecutiveFailures >= MAX_FAILURES_BEFORE_OFFLINE) {
-                updateNetworkStatus(false);
-            }
-            return 'QUEUED'; // Will be synced later
+    // Check Supabase reachability (if health check is available)
+    let supabaseReachable = true; // Default to true if health check not loaded
+    if (typeof getConnectivityStatus === 'function') {
+        const status = getConnectivityStatus();
+        if (status.supabaseReachable === false) {
+            console.log('☁️ Supabase unreachable - scan queued');
+            return 'QUEUED';
         }
-    } catch (e) {
-        console.error('Sync error:', e);
-        consecutiveFailures++;
-        if (consecutiveFailures >= MAX_FAILURES_BEFORE_OFFLINE) {
-            updateNetworkStatus(false);
-        }
-        return 'QUEUED'; // Stays in queue
+        supabaseReachable = status.supabaseReachable;
     }
+
+    // Attempt immediate sync if reachable
+    if (supabaseReachable === true) {
+        try {
+            const result = await syncScanToSupabase(payload, idempotencyKey);
+
+            if (result === 'OK' || result === 'DUPLICATE') {
+                // Successfully synced - remove from queue
+                await dequeueScan(idempotencyKey);
+                updateQueueUI();
+                updateLastSyncTime(); // Track successful sync
+
+                // Trigger health check update on success
+                if (typeof forceHealthCheck === 'function') {
+                    forceHealthCheck();
+                }
+
+                return result;
+            } else if (result === 'TIMEOUT') {
+                // Timeout - treat as unreachable, queue for later
+                console.log('⏱️ Sync timeout - scan queued');
+                return 'QUEUED';
+            } else {
+                // Failed to sync - stays in queue for later
+                console.warn('⚠️ Sync failed - scan queued');
+                return 'QUEUED';
+            }
+        } catch (e) {
+            console.error('Sync error:', e);
+            return 'QUEUED';
+        }
+    }
+
+    // Supabase not reachable - scan is queued
+    return 'QUEUED';
 }
 
 // Scan lock to prevent double-scanning
@@ -1650,6 +1836,19 @@ scanInput.addEventListener('keydown', async (ev) => {
         return;
     }
 
+    // ===== CLIENT-SIDE DUPLICATE CHECK (v8.8.0) =====
+    // Check if this serial was recently scanned by the same operator
+    // Works both online AND offline - prevents double-scans in a session
+    const currentOperator = operatorInput.value || 'UNNAMED';
+    if (typeof isDuplicateScan === 'function' && isDuplicateScan(currentOperator, cleanedSerial)) {
+        show('⚠️ DUPLICATE (recent scan)', 'dup');
+        playSoundDuplicate();
+        scanInput.value = '';
+        scanInput.focus();
+        return;  // DUPLICATE - stop here, don't queue or sync
+    }
+    // ===== END DUPLICATE CHECK =====
+
     // LOCK scanner
     scanInput.value = '';
     clearBtn.style.display = 'none';
@@ -1691,15 +1890,27 @@ scanInput.addEventListener('keydown', async (ev) => {
             lastScanStatus.style.cssText = 'background:#d1fae5; color:#065f46;';
             playSoundSuccess();
             show('✅ SAVED', 'ok');
+            // Add to client-side cache for duplicate detection
+            if (typeof addScanToCache === 'function') {
+                addScanToCache(currentOperator, cleanedSerial);
+            }
         } else if (status === 'DUPLICATE') {
             lastScanStatus.style.cssText = 'background:#fef3c7; color:#92400e;';
             playSoundDuplicate();
             show('⚠️ DUPLICATE', 'dup');
+            // Also add duplicates to cache to prevent repeated attempts
+            if (typeof addScanToCache === 'function') {
+                addScanToCache(currentOperator, cleanedSerial);
+            }
         } else if (status === 'QUEUED') {
             // QUEUED is a success state - scan is saved locally, will sync later
             lastScanStatus.style.cssText = 'background:#dbeafe; color:#1e40af;';
             playSoundSuccess(); // Success beep - scan IS saved (locally)
             show('📤 QUEUED (will sync)', 'queued');
+            // Add to client-side cache even when queued (offline duplicate protection)
+            if (typeof addScanToCache === 'function') {
+                addScanToCache(currentOperator, cleanedSerial);
+            }
         } else {
             lastScanStatus.style.cssText = 'background:#fee2e2; color:#991b1b;';
             lastScanStatus.textContent = 'ERROR';
@@ -1752,7 +1963,15 @@ async function initApp() {
         console.warn('Queue init failed:', e);
     }
 
-    loadLastScan();
+    // Start Supabase health checks (v8.8.0)
+    if (typeof startHealthChecks === 'function') {
+        startHealthChecks();
+        // Show new status badges
+        const internetBadge = document.getElementById('internetStatus');
+        const supabaseBadge = document.getElementById('supabaseStatus');
+        if (internetBadge) internetBadge.style.display = 'inline-block';
+        if (supabaseBadge) supabaseBadge.style.display = 'inline-block';
+    }
 
     // Fetch config FIRST, then populate dropdowns
     const success = await fetchPartNumberMap();
@@ -1763,6 +1982,10 @@ async function initApp() {
     // Restore lock states AFTER dropdowns are populated
     restoreLockStates();
 
+    // v8.8.0: Load last scan AFTER operator/station are set
+    // This checks localStorage, queued scans, and Supabase for most recent
+    await loadLastScan();
+
     // Refresh history now that we have prefs loaded and dropdowns potentially set
     fetchHistory();
 
@@ -1770,22 +1993,113 @@ async function initApp() {
     scanInput.classList.add('ready');
     scanInput.placeholder = '✅ Ready to scan';
 
-    // Register Service Worker for PWA caching
+    // Register Service Worker for PWA caching (v8.8.0 enhanced)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('📦 Service Worker registered:', reg.scope))
+            .then(reg => {
+                console.log('📦 Service Worker registered:', reg.scope);
+
+                // Listen for service worker updates
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    console.log('🔄 New service worker found, installing...');
+
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New service worker is ready, waiting to activate
+                            console.log('✅ New service worker ready, will reload page');
+
+                            // Show a brief notification to user
+                            showUpdateNotification();
+
+                            // Automatically reload after 2 seconds to get the update
+                            setTimeout(() => {
+                                // Tell the new service worker to skip waiting
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                // Then reload the page
+                                window.location.reload();
+                            }, 2000);
+                        }
+                    });
+                });
+
+                // Listen for messages from service worker
+                navigator.serviceWorker.addEventListener('message', event => {
+                    if (event.data && event.data.type === 'SERVICE_WORKER_UPDATE') {
+                        console.log(`📢 Service worker update available: ${event.data.version}`);
+
+                        // Show notification and reload
+                        showUpdateNotification();
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    }
+                });
+            })
             .catch(err => console.error('❌ Service Worker registration failed:', err));
     }
 
     console.log('🚀 App initialized');
 }
 
+// Show update notification to user (v8.8.0)
+function showUpdateNotification() {
+    // Create a temporary notification banner
+    const banner = document.createElement('div');
+    banner.id = 'updateBanner';
+    banner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #10b981;
+        color: white;
+        padding: 12px;
+        text-align: center;
+        font-weight: 600;
+        z-index: 9999;
+        animation: slideDown 0.3s ease-out;
+    `;
+    banner.innerHTML = '✅ New version available! Refreshing...';
+
+    // Add animation keyframes if not present
+    if (!document.getElementById('updateBannerStyles')) {
+        const style = document.createElement('style');
+        style.id = 'updateBannerStyles';
+        style.textContent = `
+            @keyframes slideDown {
+                from { transform: translateY(-100%); }
+                to { transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(banner);
+
+    // Remove banner after reload (in case reload fails)
+    setTimeout(() => {
+        if (document.body.contains(banner)) {
+            document.body.removeChild(banner);
+        }
+    }, 5000);
+}
+
 initApp();
 
 // Modals & Listeners
 // Refresh history when user changes Operator or Station
-operatorInput.addEventListener('change', () => { savePrefs(); fetchHistory(); });
-stationSel.addEventListener('change', () => { savePrefs(); fetchHistory(); });
+operatorInput.addEventListener('change', async () => {
+    savePrefs();
+    fetchHistory();
+    await loadLastScan(); // v8.8.0: Reload last scan when operator changes
+});
+
+stationSel.addEventListener('change', async () => {
+    savePrefs();
+    fetchHistory();
+    await loadLastScan(); // v8.8.0: Reload last scan when station changes
+});
 
 lockBtn.addEventListener('click', () => {
     operatorInput.disabled = true;
