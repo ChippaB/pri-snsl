@@ -2,6 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.8.3: Hotfix - Added '757E2' to HIBC_MAX_TRAILING_BEFORE_STRIP (5-digit serial preservation)
 // v8.8.2: Hotfix - Fixed VALIDATION_CONFIG undefined reference
 //         - Changed VALIDATION_CONFIG to BARCODE_VALIDATION (line 1374)
 //         - Fixes critical bug preventing HIBC barcodes from processing
@@ -82,7 +83,8 @@ const BARCODE_VALIDATION = {
     // Part-specific: do NOT strip trailing digit when "chars after last letter" <= this (avoids dropping serial digit)
     HIBC_MAX_TRAILING_BEFORE_STRIP: {
         '100756E2': 6, '100757E2': 6, '100758E2': 6,  // 756E/757E/758E + 6 digits
-        '100759E2': 7   // 759E + 7 digits
+        '100759E2': 7,  // 759E + 7 digits
+        '757E2': 6      // Fix: 757E2 has 6 trailing chars after last letter (v8.8.3)
     },
     SUSPICIOUS_CHARS: /[*#@!~`^&()={}|[\]<>;:'"]/
 };
