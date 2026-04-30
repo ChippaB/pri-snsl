@@ -1,9 +1,10 @@
 name: Daily Build Report
 
 on:
-  # Run every day at 11:00 UTC (6:00 AM EST)
+  # Run every day at 10:07 UTC (~6:07 AM EDT / 5:07 AM EST)
+  # Off-minute to avoid GitHub scheduling contention
   schedule:
-    - cron: '0 9 * * *'   # 9:00 UTC = 4:00 AM EST
+    - cron: '7 10 * * *'
   
   # Allow manual trigger for testing
   workflow_dispatch:
@@ -35,7 +36,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
-      
+
+      - name: Diagnostics
+        run: |
+          echo "UTC now: $(date -u)"
+          echo "Runner local now: $(date)"
+          echo "GitHub event: $GITHUB_EVENT_NAME"
+          echo "GitHub ref: $GITHUB_REF"
+          echo "GitHub sha: $GITHUB_SHA"
+
       - name: Generate and send report
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
