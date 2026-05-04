@@ -442,6 +442,63 @@ const QUEUE_DB_VERSION = 1;
 const QUEUE_STORE_NAME = 'pendingScans';
 let queueDb = null;
 
+function makeSyncResult(status, details = {}) {
+    return {
+        status,
+        httpStatus: Number.isFinite(details.httpStatus) ? details.httpStatus : null,
+        errorCode: details.errorCode ? String(details.errorCode) : null,
+        errorMessage: details.errorMessage ? String(details.errorMessage) : ''
+    };
+}
+
+function classifySyncResult(details = {}) {
+    const rawHttpStatus = details.httpStatus ?? details.status;
+    const httpStatus = Number.isFinite(Number(rawHttpStatus)) ? Number(rawHttpStatus) : null;
+    const errorCode = details.errorCode || details.code || null;
+    const errorMessage = details.errorMessage || details.message || '';
+    const normalizedCode = String(errorCode || '').toUpperCase();
+    const normalizedMessage = String(errorMessage || '').toLowerCase();
+    const resultDetails = { httpStatus, errorCode, errorMessage };
+
+    if (details.timedOut || details.networkError) {
+        return makeSyncResult('RETRYABLE', resultDetails);
+    }
+
+    if (httpStatus >= 200 && httpStatus <= 299) {
+        return makeSyncResult('OK', resultDetails);
+    }
+
+    if (httpStatus === 409 || normalizedCode === '23505') {
+        return makeSyncResult('DUPLICATE', resultDetails);
+    }
+
+    if (
+        httpStatus === 401 ||
+        httpStatus === 403 ||
+        httpStatus === 400 ||
+        httpStatus === 422 ||
+        normalizedCode === '42501' ||
+        normalizedMessage.includes('row-level security') ||
+        normalizedMessage.includes('rls') ||
+        normalizedMessage.includes('policy') ||
+        normalizedMessage.includes('permission') ||
+        normalizedMessage.includes('unauthorized') ||
+        normalizedMessage.includes('forbidden')
+    ) {
+        return makeSyncResult('BLOCKED', resultDetails);
+    }
+
+    if (httpStatus === 408 || httpStatus === 429 || (httpStatus >= 500 && httpStatus <= 599)) {
+        return makeSyncResult('RETRYABLE', resultDetails);
+    }
+
+    if (httpStatus >= 400 && httpStatus <= 499) {
+        return makeSyncResult('BLOCKED', resultDetails);
+    }
+
+    return makeSyncResult('RETRYABLE', resultDetails);
+}
+
 /**
  * Initialize IndexedDB for offline queue
  */
@@ -487,7 +544,12 @@ async function queueScan(payload, idempotencyKey) {
             payload,
             timestamp: Date.now(),
             status: 'pending',
-            retries: 0
+            retries: 0,
+            lastAttemptAt: null,
+            lastResult: null,
+            lastHttpStatus: null,
+            lastErrorCode: null,
+            lastErrorMessage: ''
         };
 
         const request = store.put(record);
@@ -509,6 +571,47 @@ async function dequeueScan(idempotencyKey) {
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
     });
+}
+
+/**
+ * Update metadata on an existing queued scan.
+ */
+async function updateQueuedScan(idempotencyKey, updates) {
+    if (!queueDb) await initOfflineQueue();
+
+    return new Promise((resolve, reject) => {
+        const tx = queueDb.transaction(QUEUE_STORE_NAME, 'readwrite');
+        const store = tx.objectStore(QUEUE_STORE_NAME);
+        const getRequest = store.get(idempotencyKey);
+
+        getRequest.onsuccess = () => {
+            const existing = getRequest.result;
+            if (!existing) {
+                resolve(null);
+                return;
+            }
+
+            const updated = { ...existing, ...updates };
+            const putRequest = store.put(updated);
+            putRequest.onsuccess = () => resolve(updated);
+            putRequest.onerror = () => reject(putRequest.error);
+        };
+
+        getRequest.onerror = () => reject(getRequest.error);
+    });
+}
+
+function buildQueueAttemptUpdates(record, result) {
+    const retries = Number(record?.retries || 0) + 1;
+    return {
+        status: 'pending',
+        retries,
+        lastAttemptAt: new Date().toISOString(),
+        lastResult: result.status,
+        lastHttpStatus: result.httpStatus,
+        lastErrorCode: result.errorCode,
+        lastErrorMessage: result.errorMessage
+    };
 }
 
 /**
@@ -571,7 +674,6 @@ async function flushQueue() {
         const pending = await getPendingScans();
         if (pending.length === 0) {
             console.log('✅ Queue empty, nothing to flush');
-            isFlushingQueue = false;
             updateQueueUI();
             return;
         }
@@ -584,23 +686,26 @@ async function flushQueue() {
         for (const record of pending) {
             try {
                 const result = await syncScanToSupabase(record.payload, record.idempotencyKey);
-                if (result === 'OK' || result === 'DUPLICATE') {
+                if (result.status === 'OK' || result.status === 'DUPLICATE') {
                     await dequeueScan(record.idempotencyKey);
                     updateLastSyncTime(); // Track successful sync
                     successCount++;
                     console.log(`✅ Synced: ${record.payload.serial_number}`);
-                } else if (result === 'TIMEOUT') {
-                    failureCount++;
-                    console.warn(`⏱️ Timeout: ${record.payload.serial_number}`);
-                    // Break on timeout to avoid spamming
-                    break;
                 } else {
+                    await updateQueuedScan(record.idempotencyKey, buildQueueAttemptUpdates(record, result));
                     failureCount++;
-                    console.warn(`⚠️ Failed to sync: ${record.payload.serial_number}`);
+                    console.warn(`⚠️ Sync not complete (${result.status}): ${record.payload.serial_number}`);
+                    if (result.status === 'RETRYABLE') {
+                        // Stop on retryable failures to avoid spamming the same outage.
+                        break;
+                    }
                 }
             } catch (e) {
+                const retryableResult = classifySyncResult({ networkError: true, errorMessage: e.message || 'Sync error' });
+                await updateQueuedScan(record.idempotencyKey, buildQueueAttemptUpdates(record, retryableResult));
                 failureCount++;
                 console.error('Sync error:', e);
+                break;
             }
         }
 
@@ -654,31 +759,26 @@ async function syncScanToSupabase(payload, idempotencyKey) {
         clearTimeout(timeoutId);
 
         if (response.ok) {
-            return 'OK';
-        }
-
-        // Check for duplicate (unique constraint violation)
-        if (response.status === 409) {
-            return 'DUPLICATE';
+            return classifySyncResult({ httpStatus: response.status });
         }
 
         const errorData = await response.json().catch(() => ({}));
-        if (errorData.code === '23505') {
-            return 'DUPLICATE';
-        }
-
-        return 'ERROR';
+        return classifySyncResult({
+            httpStatus: response.status,
+            errorCode: errorData.code,
+            errorMessage: errorData.message || errorData.details || errorData.hint || response.statusText
+        });
     } catch (e) {
         clearTimeout(timeoutId);
 
         // AbortError = timeout
         if (e.name === 'AbortError') {
             console.warn('Sync timeout - will retry later');
-            return 'TIMEOUT';
+            return classifySyncResult({ timedOut: true, errorMessage: e.message || 'Sync timeout' });
         }
 
         console.error('Sync error:', e);
-        return 'ERROR';
+        return classifySyncResult({ networkError: true, errorMessage: e.message || 'Network error' });
     }
 }
 
@@ -1711,10 +1811,11 @@ window.addEventListener('offline', () => {
 async function send(payload) {
     // Generate idempotency key: serial + station + timestamp
     const idempotencyKey = `${payload.serial_number}-${payload.station}-${Date.now()}`;
+    let queuedRecord = null;
 
     // Always queue locally first (guarantees no scan loss)
     try {
-        await queueScan(payload, idempotencyKey);
+        queuedRecord = await queueScan(payload, idempotencyKey);
         console.log(`📦 Queued: ${payload.serial_number}`);
     } catch (e) {
         console.error('Queue error:', e);
@@ -1746,7 +1847,7 @@ async function send(payload) {
         try {
             const result = await syncScanToSupabase(payload, idempotencyKey);
 
-            if (result === 'OK' || result === 'DUPLICATE') {
+            if (result.status === 'OK' || result.status === 'DUPLICATE') {
                 // Successfully synced - remove from queue
                 await dequeueScan(idempotencyKey);
                 updateQueueUI();
@@ -1757,17 +1858,22 @@ async function send(payload) {
                     forceHealthCheck();
                 }
 
-                return result;
-            } else if (result === 'TIMEOUT') {
-                // Timeout - treat as unreachable, queue for later
-                console.log('⏱️ Sync timeout - scan queued');
-                return 'QUEUED';
+                return result.status;
             } else {
                 // Failed to sync - stays in queue for later
+                if (queuedRecord) {
+                    await updateQueuedScan(idempotencyKey, buildQueueAttemptUpdates(queuedRecord, result));
+                    updateQueueUI();
+                }
                 console.warn('⚠️ Sync failed - scan queued');
                 return 'QUEUED';
             }
         } catch (e) {
+            if (queuedRecord) {
+                const retryableResult = classifySyncResult({ networkError: true, errorMessage: e.message || 'Sync error' });
+                await updateQueuedScan(idempotencyKey, buildQueueAttemptUpdates(queuedRecord, retryableResult));
+                updateQueueUI();
+            }
             console.error('Sync error:', e);
             return 'QUEUED';
         }
@@ -1895,7 +2001,7 @@ scanInput.addEventListener('keydown', async (ev) => {
         if (lastScanRelative) lastScanRelative.textContent = '';
 
         const payload = {
-            operator: operatorInput.value || 'UNNAMED',
+            operator: currentOperator,
             station: stationSel.value,
             raw_scan: raw,
             part_number: cleanedPart,
