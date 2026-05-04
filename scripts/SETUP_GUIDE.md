@@ -1,133 +1,110 @@
-# Daily Build Report - Setup Guide
-
-This guide explains how to set up the automated daily email reports for Polytechnic Resources.
+# Daily Build Report Setup Guide
 
 ## Overview
 
-The system automatically:
-1. Runs every day at **6:00 AM EST**
-2. Queries Supabase for **previous day's scan data**
-3. Generates an **Excel report** in the Build_Report format
-4. Emails it to configured recipients
+The daily report workflow reads the previous day's scans from Supabase, generates Excel files, and emails them to configured recipients.
 
----
+The workflow is defined in `.github/workflows/daily-report.yml` and currently runs at `10:07 UTC` each day. That is approximately `5:07 AM EST` or `6:07 AM EDT`.
 
-## Step 1: Create Gmail App Password
+## Purpose
 
-Since you're using Gmail (`polytechnicresources.dev@gmail.com`), you need an **App Password** instead of your regular password.
+Use this guide to configure report credentials, test report generation, and recover from missing report emails.
 
-1. Go to https://myaccount.google.com/apppasswords
-2. Sign in with `polytechnicresources.dev@gmail.com`
-3. Select "Mail" as the app
-4. Select "Other" as the device, name it "Build Report"
-5. Click **Generate**
-6. Copy the 16-character password (it looks like: `xxxx xxxx xxxx xxxx`)
+## Step-by-Step Instructions
 
-> **Note:** If you don't see "App passwords", you may need to enable 2-Step Verification first at https://myaccount.google.com/security
+### 1. Create a Gmail App Password
 
----
+If Gmail is used for `SMTP_EMAIL`, use an app password rather than the regular Gmail password.
 
-## Step 2: Add GitHub Secrets
+1. Go to `https://myaccount.google.com/apppasswords`.
+2. Sign in to the sending Gmail account.
+3. Create an app password for mail/report sending.
+4. Store the generated password as the GitHub `SMTP_PASSWORD` secret.
 
-Go to your GitHub repository → Settings → Secrets and variables → Actions → **New repository secret**
+If app passwords are not available, confirm that 2-Step Verification is enabled for the Gmail account.
 
-Add these secrets:
+### 2. Add GitHub Actions Secrets
 
-| Secret Name | Value |
-|-------------|-------|
-| `SUPABASE_URL` | `https://ospedluufxgpfvqtznej.supabase.co` |
-| `SUPABASE_KEY` | Your Supabase anon key (the one in app.js) |
-| `SMTP_EMAIL` | `polytechnicresources.dev@gmail.com` |
-| `SMTP_PASSWORD` | The 16-character App Password from Step 1 |
-| `REPORT_RECIPIENTS` | `chip.brandner@gmail.com` |
+In GitHub, open the repository settings and go to Secrets and variables, then Actions.
 
-### Adding Multiple Recipients
+Required secrets:
 
-To send to multiple people, use a comma-separated list:
+| Secret | Purpose |
+|---|---|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_KEY` | Supabase key used by `scripts/daily_report.py` |
+| `SMTP_EMAIL` | Gmail account used to send reports |
+| `SMTP_PASSWORD` | Gmail app password |
+| `REPORT_RECIPIENTS` | Comma-separated email recipient list |
+
+Optional Google Sheets backup secrets:
+
+| Secret | Purpose |
+|---|---|
+| `GSHEET_CREDENTIALS_JSON` | Google service account credentials JSON |
+| `GSHEET_SPREADSHEET_ID` | Target backup spreadsheet ID |
+
+### 3. Test the Workflow
+
+1. Open the repository in GitHub.
+2. Go to Actions.
+3. Select `Daily Build Report`.
+4. Click `Run workflow`.
+5. Enter a report date in `YYYY-MM-DD` format if testing a specific day.
+6. Use test mode when you want files generated without sending email.
+7. Open the workflow run and confirm it completed successfully.
+
+### 4. Run Locally
+
+Install dependencies:
+
+```bash
+pip install -r scripts/requirements.txt
 ```
-chip.brandner@gmail.com, another@email.com, client@company.com
+
+Set required environment variables:
+
+```bash
+export SUPABASE_URL="https://your-project.supabase.co"
+export SUPABASE_KEY="your-key"
+export SMTP_EMAIL="sender@example.com"
+export SMTP_PASSWORD="gmail-app-password"
+export REPORT_RECIPIENTS="recipient@example.com"
 ```
 
----
+Run in test mode:
 
-## Step 3: Test the Report
+```bash
+python scripts/daily_report.py --test
+```
 
-After adding secrets, you can manually trigger a test run:
+Run for a specific date:
 
-1. Go to your GitHub repository
-2. Click **Actions** tab
-3. Click **Daily Build Report** in the left sidebar
-4. Click **Run workflow** button
-5. Optionally enter a specific date or check "Test mode"
-6. Click **Run workflow**
+```bash
+python scripts/daily_report.py 2026-05-03
+```
 
-Watch the logs to ensure it completes successfully.
+## Edge Cases and Warnings
 
----
-
-## Step 4: Verify Automatic Runs
-
-The workflow runs automatically at 6:00 AM EST every day. You can see run history in the **Actions** tab.
-
----
+- GitHub scheduled workflows can run late.
+- If no scans exist for the target date, no normal production email may be sent.
+- During daylight saving time, confirm the report date boundaries match production expectations.
+- Do not put secrets directly in committed files.
+- Treat the Supabase report key as sensitive.
 
 ## Troubleshooting
 
-### Email not sending?
-- Verify the App Password is correct (no spaces)
-- Check that 2-Step Verification is enabled on Gmail
-- Look at the GitHub Actions logs for error messages
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| No email arrived | Workflow did not run, found no scans, or email failed | Check GitHub Actions run history |
+| Workflow failed before report generation | Missing Python dependency or checkout/setup issue | Open the failed step logs |
+| Supabase error | Bad or missing `SUPABASE_URL` or `SUPABASE_KEY` | Verify GitHub secrets |
+| SMTP error | Bad Gmail app password or sender account issue | Regenerate `SMTP_PASSWORD` |
+| Wrong date or count | Timezone/date mismatch or no scans in range | Rerun manually with explicit `YYYY-MM-DD` |
+| Google Sheets backup failed | Optional Sheets secrets missing or invalid | Verify `GSHEET_CREDENTIALS_JSON` and `GSHEET_SPREADSHEET_ID` |
 
-### No data in report?
-- Check that scans exist for the target date in Supabase
-- Verify the timezone handling (scans should be in UTC)
+## Notes and Limitations
 
-### Wrong scan count?
-- The script fetches scans for the previous day in EST timezone
-- Check the date range being queried in the logs
-
----
-
-## Local Testing
-
-You can also test locally:
-
-```bash
-# Install dependencies
-pip install -r scripts/requirements.txt
-
-# Set environment variables
-export SUPABASE_URL="https://ospedluufxgpfvqtznej.supabase.co"
-export SUPABASE_KEY="your-key-here"
-export SMTP_EMAIL="polytechnicresources.dev@gmail.com"
-export SMTP_PASSWORD="your-app-password"
-export REPORT_RECIPIENTS="chip.brandner@gmail.com"
-
-# Run in test mode (generates Excel but doesn't email)
-python scripts/daily_report.py --test
-
-# Run for a specific date
-python scripts/daily_report.py 2025-12-17
-```
-
----
-
-## Modifying Settings
-
-### Change recipient emails
-Update the `REPORT_RECIPIENTS` secret in GitHub.
-
-### Change send time
-Edit `.github/workflows/daily-report.yml` and modify the cron schedule:
-```yaml
-schedule:
-  - cron: '0 11 * * *'  # 11:00 UTC = 6:00 AM EST
-```
-
-Common times:
-- `0 11 * * *` = 6:00 AM EST
-- `0 12 * * *` = 7:00 AM EST
-- `0 13 * * *` = 8:00 AM EST
-
-### Change pieces per box multiplier
-Edit the workflow file and change `PIECES_PER_BOX: '100'`
+- Reports are separate from production scanner behavior.
+- Report setup does not change scanner queue or duplicate handling.
+- The workflow uses `PIECES_PER_BOX: 100` unless changed in the workflow file.

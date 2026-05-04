@@ -1,129 +1,121 @@
 # PRI Serial Number Log (SNSL)
 
-A mobile-friendly Progressive Web App (PWA) for tracking production serial numbers through barcode scanning.
+Mobile-friendly scanning system for recording PRI production serial numbers from barcode labels.
 
-## Current Version: v8.6.4
+## Overview
 
-**Latest Changes (Jan 7, 2026):**
-- Fixed HIBC check digit stripping for mixed barcode formats
-- Handles 6-digit serials without check digits
-- Service worker error handling for offline scenarios
-- Dashboard fixes
+PRI-SNSL is a static Progressive Web App used by operators on tablets or phones. Operators scan a label, the app extracts the part and serial number, and the scan is saved to Supabase. When the tablet is offline or Supabase is unreachable, scans are stored locally and retried later.
 
-## What It Does
+The scanner behavior is implemented in `app.js`, `scan-cache.js`, `supabase-health.js`, and `service-worker.js`. This documentation cleanup does not change scanner behavior or the Supabase schema.
 
-- **Scan Barcodes**: Operators scan boxes using mobile phones/tablets
-- **Track Everything**: Every scan saved with operator, part, serial, station, and timestamp
-- **Live Dashboard**: Real-time analytics with filters, search, and Excel export
-- **Daily Reports**: Automatic email reports every night at midnight EST
-- **Works Offline**: IndexedDB cache + service worker for spotty WiFi
+## Current Version
 
-## Tech Stack
+Scanner UI and service worker: `v8.8.3`.
 
-| Component | Technology |
-|-----------|------------|
-| Frontend | HTML/CSS/JavaScript (PWA) |
-| Database | Supabase (PostgreSQL) |
-| Hosting | Vercel (free tier) |
-| Reports | GitHub Actions + Python |
-| Offline | IndexedDB + Service Worker |
+Use the version badge in the scanning app and `service-worker.js` cache version as the runtime version check.
 
-## Project Structure
+## Purpose
 
-```
-pri-snsl/
-├── index.html              # Main scanning app
-├── dashboard.html          # Analytics dashboard (edit/delete, export)
-├── my-scans.html          # Operator's personal scan history
-├── app.js                 # Core application logic (parsing, validation)
-├── service-worker.js       # PWA offline support (cache strategy)
-├── manifest.json          # PWA manifest (installable)
-├── icon-*.png            # App icons (192x512px)
-├── favicon.ico            # Browser favicon
-├── vercel.json            # Vercel hosting config
-├── README.md              # This file (project overview)
-├── CLIENT_SUMMARY.md       # Client-facing documentation
-├── supabase_schema.md     # Database schema reference
-├── scripts/
-│   ├── daily_report.py     # Daily email report generation
-│   ├── SETUP_GUIDE.md     # Report setup instructions
-│   ├── requirements.txt     # Python dependencies
-│   └── run_daily_report_manual.ps1  # Manual report runner
-├── tests/
-│   ├── test_hibc_check_digit.js  # HIBC parsing tests
-│   ├── test_mgc_fix.py            # MGC variant tests
-│   └── test_validation.js          # Barcode validation tests
-├── archive/
-│   ├── fix_hibc_serials.sql       # Historical data fixes
-│   ├── fix_scan_part_ids.sql       # Part ID corrections
-│   ├── supabase_flagged_scans.sql  # Flagged scans trigger
-│   └── supabase_rls_fix.sql       # RLS policy fixes
-└── .github/workflows/
-    └── daily-report.yml    # Scheduled automation (11:59 PM EST)
-```
+- Record each production scan with operator, station, raw barcode, part number, serial number, note, and timestamp.
+- Give operators clear scan feedback: saved, duplicate, queued, or error.
+- Keep scanning usable during short Wi-Fi or Supabase outages.
+- Provide dashboard review, export, correction, and daily reporting support.
 
-## Barcode Format Support
+## Documentation
 
-| Format | Pattern | Example | Parsing |
-|--------|----------|----------|----------|
-| GS1-128 | `01` + 14 digits + serial | `0112345678901234...` | Standard GS1 parsing |
-| HIBC | `/$+` delimiter | `+B446757WM1/$+R757WM102698%` | Modulo 43 check digit stripping |
-| MGC | Alphanumeric (5-digit serials) | `MGC1S17754` | Part number extraction |
-| Custom | Various patterns | `R756PUL12345` | Format detection |
+Current source-of-truth docs:
 
-### HIBC Barcode Handling
+- [Operator Handbook](operator-handbook.md) - simple operator workflow and what each scan result means.
+- [Troubleshooting Guide](troubleshooting.md) - symptom, likely cause, and fix steps for common problems.
+- [Barcode Parsing Contract](barcode-parsing.md) - current barcode validation and parsing behavior.
+- [Idempotency and Deduplication Contract](idempotency-dedup.md) - duplicate handling, local queue behavior, and retry behavior.
+- [Offline Scanning Architecture](docs/OFFLINE_SCANNING.md) - technical offline flow summary, linked back to the source contracts.
+- [Supabase Schema Reference](supabase_schema.md) - database table reference.
+- [Report Setup Guide](scripts/SETUP_GUIDE.md) - daily report configuration.
+- [Test Suite](tests/README.md) - available regression tests.
 
-**v8.6.4 Logic:**
-- Special character/letter check digits: Always stripped (unambiguous)
-- Digit check digits with >6 trailing chars: Stripped (must have check digit)
-- Digit check digits with ≤6 trailing chars: NOT stripped (could be serial without check digit)
+Historical fix notes and one-off migration notes are kept for context, but they are not the current source of truth unless linked above.
 
-**Examples:**
-- `R757WM102698%` → `R757WM102698` (special char stripped)
-- `R757WM1026990` → `R757WM102699` (7 trailing, digit stripped)
-- `R757WM102694` → `R757WM102694` (6 trailing, NO strip - no check digit)
-- `R757WM102698` → `R757WM102698` (5 trailing, NO strip - no check digit)
+## Key Components
+
+| Component | Files | Purpose |
+|---|---|---|
+| Scanner app | `index.html`, `app.js` | Main operator scanning workflow, barcode validation, parsing, and submission |
+| Duplicate cache | `scan-cache.js` | Blocks same-operator repeat scans of the same serial within 5 seconds |
+| Offline queue | `app.js` IndexedDB helpers | Saves scans locally before network submission |
+| Connectivity checks | `supabase-health.js` | Separates device internet status from Supabase reachability |
+| Offline app shell | `service-worker.js`, `manifest.json` | PWA install support and cached app assets |
+| Dashboard | `dashboard.html` | Scan review, filtering, export, edit, and delete workflows |
+| Operator history | `my-scans.html` | Operator-specific scan history view |
+| Reports | `scripts/daily_report.py`, `.github/workflows/daily-report.yml` | Daily Excel and email report generation |
+| Database | Supabase tables documented in `supabase_schema.md` | Operators, stations, part map, and scans |
 
 ## Setup
 
-### 1. Deploy to Vercel
-Connect this repo to Vercel for automatic deployments.
+### Scanner Deployment
 
-### 2. Configure Supabase
-The app connects to Supabase using these credentials in `app.js`:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
+1. Host the static files on Vercel or another static host.
+2. Confirm `index.html`, `app.js`, `scan-cache.js`, `supabase-health.js`, `service-worker.js`, `manifest.json`, and app icons are deployed together.
+3. Confirm the Supabase URL and anon key used by the scanner are valid.
+4. Open the scanner app and verify:
+   - operator list loads
+   - station list loads
+   - internet badge shows online
+   - Supabase badge reaches OK or SLOW
+   - pending scan count starts at zero
 
-### 3. Set Up Daily Reports
-Add these secrets to GitHub repository settings:
-| Secret | Description |
-|--------|-------------|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_KEY` | Supabase service role key |
-| `SMTP_EMAIL` | Gmail address for sending |
+### Supabase
+
+The scanner reads active operators, stations, and part mappings from Supabase and writes scan records to the `scans` table.
+
+Do not apply schema changes from documentation without verifying the live project first. The scanner currently sends an `idempotency_key` with each scan insert.
+
+### Daily Reports
+
+Daily reports are handled by GitHub Actions in `.github/workflows/daily-report.yml`. The workflow runs at `10:07 UTC` each day, which is approximately `5:07 AM EST` or `6:07 AM EDT`.
+
+Required GitHub secrets:
+
+| Secret | Purpose |
+|---|---|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_KEY` | Supabase key used by the report script |
+| `SMTP_EMAIL` | Gmail account used to send reports |
 | `SMTP_PASSWORD` | Gmail app password |
-| `REPORT_RECIPIENTS` | Comma-separated email list |
+| `REPORT_RECIPIENTS` | Comma-separated recipient list |
+| `GSHEET_CREDENTIALS_JSON` | Optional Google Sheets backup credentials |
+| `GSHEET_SPREADSHEET_ID` | Optional Google Sheets backup target |
 
-## Dashboard Features
+## Step-by-Step Operator Flow
 
-- **Live Operator Cards**: See who's scanning right now
-- **Multi-Select Filters**: Filter by operator, station, part
-- **Export to Excel**: Download filtered data as .xlsx
-- **Auto-Refresh**: Updates every 60 seconds
-- **Edit/Delete**: Modify records with full audit trail
+Operators should use [Operator Handbook](operator-handbook.md). The short version is:
 
-## Daily Reports
+1. Select the correct operator and station.
+2. Scan one complete barcode.
+3. Read the result message before moving on.
+4. Continue on `SAVED` or `QUEUED`.
+5. Do not rescan immediately on `DUPLICATE`.
+6. Clean and rescan on `ERROR`; set aside repeated failures.
+7. Leave the app open if pending scans are waiting.
 
-Runs automatically at 11:59 PM EST via GitHub Actions.
+## Edge Cases and Warnings
 
-**Report Contents:**
-- Build summary grouped by operator/station/part
-- Grand totals by part number and operator
-- Raw data sheet with all barcodes
-- Individual sheets for each operator
+- `QUEUED` is a saved local scan, not a failed scan.
+- A recent duplicate is blocked locally and is not sent to the database.
+- A database duplicate is treated as complete for queue cleanup.
+- Clearing browser site data can remove local queued scans. Do not clear site data while pending scans are above zero.
+- Old fix-summary docs may mention earlier versions such as `v8.6.4` or `v8.6.6`; prefer the current docs linked above.
 
-**Backup:**
-- Copies data to Google Sheets (optional)
+## Troubleshooting
+
+Use [Troubleshooting Guide](troubleshooting.md) for operator-safe recovery steps. Use [Idempotency and Deduplication Contract](idempotency-dedup.md) and [Barcode Parsing Contract](barcode-parsing.md) for technical investigation.
+
+## Notes and Limitations
+
+- The scanner is a browser app. Local queue storage depends on the browser keeping site data.
+- The scanner queues before attempting network sync so short outages do not stop scanning.
+- The app does not change Supabase schema at runtime.
+- Report generation is separate from scanner behavior.
 
 ## License
 

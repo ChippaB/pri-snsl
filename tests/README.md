@@ -1,94 +1,70 @@
 # Test Suite
 
-This folder contains automated tests for the barcode scanning system.
+## Overview
 
-## Tests
+This folder contains lightweight regression tests for scanner parsing, validation, duplicate cache behavior, connectivity classification, and report formatting helpers.
 
-### test_validation.js
-**Purpose:** Test client-side barcode validation logic
+## Purpose
 
-**Tests:**
-- GS1-128 format validation
-- HIBC format validation
-- Custom format validation
-- Minimum length checks
-- Suspicious character detection
-- Empty/null input handling
+Use these tests after documentation or code changes to confirm known scanner rules still behave as expected. Documentation-only changes do not require scanner runtime changes, but running the relevant tests is still useful when docs were checked against code behavior.
 
-**Run:** `node test_validation.js`
+## Step-by-Step Instructions
 
-**Expected Result:** 8/8 tests passing
-
----
-
-### test_hibc_check_digit.js
-**Purpose:** Test HIBC barcode check digit stripping logic (v8.6.4)
-
-**Tests:**
-- Letter check digits (always stripped)
-- Special character check digits (always stripped)
-- Digit check digits with >6 trailing chars (stripped)
-- Digit check digits with 6 trailing chars (NOT stripped - could be serial)
-- Digit check digits with ≤5 trailing chars (NOT stripped)
-- All-numeric serials (last digit stripped)
-- Edge cases (single char, two chars)
-
-**Key Logic (v8.6.4):**
-```javascript
-// >6 trailing digits → strip (must have check digit)
-// =6 trailing digits → don't strip (ambiguous: 5+check or 6-digit serial)
-// ≤5 trailing digits → don't strip (serial too short)
-```
-
-**Run:** `node test_hibc_check_digit.js`
-
-**Expected Result:** 14/14 tests passing
-
-**Examples:**
-- `R757WM102694` → `R757WM102694` (6-digit serial, no check digit)
-- `R757WM1026990` → `R757WM102699` (5-digit serial + check digit '0')
-- `R757WM102698%` → `R757WM102698` (special char check digit stripped)
-
----
-
-### test_mgc_fix.py
-**Purpose:** Test MGC part number variant suffix detection (v8.6.3)
-
-**Tests:**
-- MGC1S, MGC2S (S suffix)
-- MGC4C, MGCK2S (C suffix)
-- Pattern matching: `^MGC.*(S|C)$`
-
-**Run:** `python test_mgc_fix.py`
-
-**Expected Result:** 9/9 tests passing
-
-**Examples:**
-- MGC1S17775 → append 'S' suffix
-- MGC4C93025 → append 'C' suffix
-- MGCK1S58198 → append 'S' suffix
-
----
-
-## Running All Tests
+Run JavaScript tests from the repository root:
 
 ```bash
-# JavaScript tests
-node test_validation.js
-node test_hibc_check_digit.js
-
-# Python test
-python test_mgc_fix.py
+node tests/test_validation.js
+node tests/test_hibc_check_digit.js
+node tests/test_scan_cache.js
+node tests/test_sync_classification.js
+node tests/test_supabase_health.js
+node tests/test_760e_endcap_fix.js
+node tests/test_759e2_no_strip.js
+node tests/test_759el_quick.js
+node tests/test_758el_and_header_fix.js
 ```
 
-## Test Coverage
+Run Python tests from the repository root:
 
-Current test coverage focuses on:
-- ✅ Barcode validation (rejection criteria)
-- ✅ HIBC parsing (check digit stripping)
-- ✅ MGC variants (suffix detection)
+```bash
+python tests/test_mgc_fix.py
+python tests/test_100760_formatting.py
+```
 
-**Not covered:**
-- GS1-128 parsing (assumed working)
-- Custom format parsing (format-specific logic)
-- Database operations (requires live Supabase connection)
+Some report helper checks may require the `scripts` directory on the Python path or report dependencies installed from `scripts/requirements.txt`.
+
+## Test Inventory
+
+| Test | Area |
+|---|---|
+| `test_validation.js` | Raw barcode validation rules |
+| `test_hibc_check_digit.js` | HIBC check digit stripping |
+| `test_scan_cache.js` | Recent duplicate cache behavior |
+| `test_sync_classification.js` | Supabase response classification |
+| `test_supabase_health.js` | Supabase health check behavior |
+| `test_760e_endcap_fix.js` | 100760 end-cap handling |
+| `test_759e2_no_strip.js` | 759E2 trailing digit preservation |
+| `test_759el_quick.js` | 759EL parsing behavior |
+| `test_758el_and_header_fix.js` | 758EL parsing and report header extraction |
+| `test_mgc_fix.py` | MGC S/C variant handling |
+| `test_100760_formatting.py` | Report formatting for 100760 variants |
+
+## Edge Cases and Warnings
+
+- Tests are a focused regression suite, not full end-to-end coverage.
+- Browser storage, IndexedDB, and live Supabase behavior are only partially simulated.
+- Report tests may need Python dependencies installed.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `node` command not found | Node.js not installed or not on PATH | Install Node.js or run in an environment with Node |
+| Python import error | Report dependencies missing or path issue | Install `scripts/requirements.txt` and run from repo root |
+| Expected count in old docs differs | Old README was stale | Treat test output and current test files as source |
+| Supabase health test fails unexpectedly | Environment or fetch mocking difference | Inspect the specific failed assertion |
+
+## Notes and Limitations
+
+- These tests do not require production scanner behavior changes.
+- Do not use tests to infer live Supabase schema; verify schema separately.
