@@ -1,11 +1,7 @@
 name: Daily Build Report
 
 on:
-  # Run every day at 10:07 UTC (~6:07 AM EDT / 5:07 AM EST)
-  # Off-minute to avoid GitHub scheduling contention
-  schedule:
-    - cron: '7 10 * * *'
-  
+  # cron-job.org is now the primary scheduler; keep workflow_dispatch enabled.
   # Allow manual trigger for testing
   workflow_dispatch:
     inputs:
