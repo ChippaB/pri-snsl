@@ -4,7 +4,7 @@
 
 This document describes the current barcode validation and parsing behavior used by the scanner runtime. The active runtime source is `app.js`. Product rule reference data is also present in `product_rules_master_truth.js`, but the browser behavior depends on what is loaded by the deployed app.
 
-Current scanner version: `v8.8.3`.
+Current scanner version: `v8.8.4`.
 
 ## Purpose
 
@@ -182,7 +182,8 @@ Supabase insert fields are mapped in `syncScanToSupabase()`:
 
 ## Edge Cases and Warnings
 
-- `UNKNOWN` part numbers can still be submitted if a valid serial is extracted.
+- Incomplete GS1-128 scans (missing the leading `01…`) are recovered when a known GTIN fragment and serial AI `21` are present.
+- If part is still `UNKNOWN` after recovery, the scan is rejected and is not queued or inserted.
 - Empty final serials are rejected as `INVALID FORMAT`.
 - HIBC all-numeric serial sections have their last digit stripped.
 - `%` is valid in HIBC labels and should not be treated as scanner noise.
@@ -197,7 +198,7 @@ Supabase insert fields are mapped in `syncScanToSupabase()`:
 | `Too short` | Scanner captured only part of the barcode. | Clean label and rescan the full barcode. |
 | `Contains invalid characters` | Scanner captured noise or a damaged label. | Clean label and rescan once. |
 | `INVALID FORMAT` | The scan passed raw validation, but no serial could be extracted. | Capture the raw barcode and review parsing rules. |
-| Part shows `UNKNOWN` | Serial was valid, but no part mapping or fallback prefix matched. | Check `part_map` data and active product rules. |
+| Incomplete barcode / UNKNOWN blocked | Scanner sent a chopped GS1-128 (missing leading `01`). | Rescan the full label in one pass. |
 | Last serial digit appears missing | HIBC check digit threshold may not match that product. | Compare against the HIBC threshold table and product rule. |
 
 ## Notes and Limitations

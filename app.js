@@ -2,6 +2,7 @@
 // ===== SeeScan Supa1.0.1 - Supabase Migration =====
 // Supa1.0.1: Replaced Flask/Google Sheets backend with Supabase.
 //         Ported Python parsing logic (MGC, R756, etc.) to client-side JavaScript (`app.js`).
+// v8.8.4: Reject UNKNOWN / recover truncated GS1-128 (missing leading 01) before insert
 // v8.8.3: Hotfix - Added '757E2' to HIBC_MAX_TRAILING_BEFORE_STRIP (5-digit serial preservation)
 // v8.8.2: Hotfix - Fixed VALIDATION_CONFIG undefined reference
 //         - Changed VALIDATION_CONFIG to BARCODE_VALIDATION (line 1374)
@@ -1306,6 +1307,46 @@ function validateRawBarcode(rawScan) {
     return { valid: true };
 }
 
+function looksLikeTruncatedGs1(raw) {
+    if (!raw || typeof raw !== 'string') return false;
+    const s = raw.toUpperCase().trim();
+    if (s.startsWith('01') || s.includes('/$+')) return false;
+    return /(?:11|17|13)\d{6}21[A-Z0-9]/.test(s) || /^\d{8,}21(?:MGCK|MGC|PUL|R756|EBS|FIL)/.test(s);
+}
+
+function recoverTruncatedGs1(raw, partMap) {
+    if (!raw) return null;
+    const s = String(raw).toUpperCase().trim();
+    if (s.startsWith('01') || s.includes('/$+')) return null;
+
+    const serialMatch = s.match(/(?:11|17|13)\d{6}21([A-Z0-9]+)$/)
+        || s.match(/21((?:MGCK|MGC|PUL|R756|EBS|FIL)[A-Z0-9]+)$/);
+    const serial = serialMatch ? serialMatch[1] : '';
+
+    let part = null;
+    let bestLen = 0;
+    const map = partMap || {};
+    for (const prefix of Object.keys(map)) {
+        const gtin = prefix.startsWith('01') ? prefix.slice(2) : prefix;
+        const needles = [gtin, gtin.slice(1), gtin.slice(2), gtin.replace(/^0+/, '')];
+        for (const needle of needles) {
+            if (needle && needle.length >= 6 && s.includes(needle) && needle.length > bestLen) {
+                part = map[prefix];
+                bestLen = needle.length;
+            }
+        }
+    }
+
+    if (!part && serial) {
+        part = extractPartFromSerial(serial);
+        if (part === 'MGC' && /^MGC2\d/.test(serial)) part = '536713-002';
+        if (part === 'MGC' && /^MGCK1\d/.test(serial)) part = '536719-001';
+    }
+
+    if (!part || !serial || part === 'UNKNOWN') return null;
+    return { part, serial };
+}
+
 /**
  * Auto-detect part number from serial prefix.
  * Ported from extract_part_from_serial in python.
@@ -1945,8 +1986,16 @@ scanInput.addEventListener('keydown', async (ev) => {
             parsed.part = extractedPart;
             parsed.serial = candidateSerial;
         } else {
-            // Still no part found, just use the cleaned serial
             parsed.serial = candidateSerial;
+        }
+    }
+
+    if ((!parsed.part || parsed.part === 'UNKNOWN') && looksLikeTruncatedGs1(raw)) {
+        const recovered = recoverTruncatedGs1(raw, PART_NUMBER_MAP);
+        if (recovered) {
+            console.log('🔧 Recovered truncated GS1:', recovered);
+            parsed.part = recovered.part;
+            parsed.serial = recovered.serial;
         }
     }
 
@@ -1957,6 +2006,17 @@ scanInput.addEventListener('keydown', async (ev) => {
     if (!cleanedSerial) {
         show('INVALID FORMAT', 'err');
         playSoundError();
+        return;
+    }
+
+    if (!cleanedPart || cleanedPart === 'UNKNOWN') {
+        const reason = looksLikeTruncatedGs1(raw)
+            ? 'Incomplete barcode — rescan the full label'
+            : 'Unknown part number — rescan the full label';
+        console.log('❌ UNKNOWN part blocked:', reason, raw);
+        showValidationError(reason, raw);
+        scanInput.value = '';
+        scanInput.focus();
         return;
     }
 
